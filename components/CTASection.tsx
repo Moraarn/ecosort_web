@@ -13,12 +13,7 @@ export default function CTASection() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link href="/recycling-assistant">
             <button className="bg-white text-green-600 px-8 py-4 rounded-full hover:bg-gray-100 transition-colors font-medium">
-              🔄 Start Sorting Now
-            </button>
-          </Link>
-          <Link href="/auth/login">
-            <button className="border-2 border-green-400 text-white px-8 py-4 rounded-full hover:bg-green-400 hover:text-white transition-colors font-medium">
-              Get Started Free
+              Start Sorting Now
             </button>
           </Link>
           <button className="border-2 border-green-400 text-white px-8 py-4 rounded-full hover:bg-green-400 hover:text-white transition-colors font-medium">

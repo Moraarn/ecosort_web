@@ -16,9 +16,10 @@ interface GoogleMapProps {
   markers: MapMarker[]
   onMarkerClick?: (marker: MapMarker) => void
   onMapClick?: (location: { lat: number; lng: number }) => void
+  center?: { lat: number; lng: number }
 }
 
-export default function GoogleMap({ markers, onMarkerClick, onMapClick }: GoogleMapProps) {
+export default function GoogleMap({ markers, onMarkerClick, onMapClick, center = { lat: 40.7128, lng: -74.0060 } }: GoogleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])
@@ -28,7 +29,7 @@ export default function GoogleMap({ markers, onMarkerClick, onMapClick }: Google
       if (!mapRef.current || !window.google) return
 
       const map = new window.google.maps.Map(mapRef.current, {
-        center: { lat: 40.7128, lng: -74.0060 }, // New York coordinates
+        center: center, // Use provided center or default
         zoom: 12,
         styles: [
           {
@@ -111,6 +112,13 @@ export default function GoogleMap({ markers, onMarkerClick, onMapClick }: Google
       markersRef.current = []
     }
   }, [markers, onMarkerClick])
+
+  useEffect(() => {
+    // Update map center when center prop changes
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setCenter(center)
+    }
+  }, [center])
 
   return (
     <div 

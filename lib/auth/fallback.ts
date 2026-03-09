@@ -7,6 +7,7 @@ export interface FallbackUser {
   role: 'citizen' | 'admin'
   totalPoints: number
   createdAt: string
+  password?: string // Add password field for testing
 }
 
 // In-memory user store (for development only)
@@ -41,7 +42,8 @@ export class FallbackAuth {
       phone,
       role,
       totalPoints: 0,
-      createdAt: new Date(now).toISOString()
+      createdAt: new Date(now).toISOString(),
+      password // Store password for testing (in production, this would be hashed)
     }
 
     // Store user and session
@@ -54,7 +56,7 @@ export class FallbackAuth {
   static async signIn(email: string, password: string): Promise<{ user: FallbackUser; sessionToken: string }> {
     // Find user by email
     for (const user of users.values()) {
-      if (user.email === email) {
+      if (user.email === email && user.password === password) {
         const sessionToken = this.generateSessionToken()
         const now = Date.now()
         
@@ -107,7 +109,8 @@ export class FallbackAuth {
         fullName,
         role,
         totalPoints: 0,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        password // Include password for testing
       }
       users.set(userId, user)
     })

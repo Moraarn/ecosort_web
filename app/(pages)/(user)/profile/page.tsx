@@ -1,11 +1,55 @@
 "use client"
 
 import DashboardLayout from "@/components/DashboardLayout"
-import { useState } from "react"
-
+import { useState, useEffect } from "react"
+import { useAuth } from "@/contexts/AuthContext"
 
 export default function Profile() {
   const [activeTab, setActiveTab] = useState("overview")
+  const { user, isAuthenticated, loading } = useAuth()
+
+  // Show loading state
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="p-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+              <p className="mt-2 text-gray-600">Loading profile...</p>
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  // Show authentication required state
+  if (!isAuthenticated || !user) {
+    return (
+      <DashboardLayout>
+        <div className="p-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Authentication Required</h2>
+              <p className="text-gray-600 mb-4">Please sign in to view your profile</p>
+              <a 
+                href="/auth/login" 
+                className="inline-block px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Sign In
+              </a>
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
 
   const recyclingData = {
     plastics: 120,
@@ -14,13 +58,25 @@ export default function Profile() {
     total: 245
   }
 
+  // Calculate user profile data from auth context
   const userProfile = {
-    name: "John Doe",
-    email: "john.doe@example.com",
-    joinDate: "January 2024",
-    level: "Eco Warrior",
-    points: 2450,
-    rank: 12
+    name: user?.full_name || user?.email || "User",
+    email: user?.email || "user@example.com",
+    joinDate: user?.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "January 2024",
+    level: user?.total_points ? 
+      (user.total_points >= 1000 ? "Eco Warrior" : 
+       user.total_points >= 500 ? "Green Champion" : 
+       user.total_points >= 100 ? "Eco Enthusiast" : "Beginner") : "Beginner",
+    points: user?.total_points || 0,
+    rank: 12 // This would come from a leaderboard API
+  }
+
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (user?.full_name) {
+      return user.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    }
+    return user?.email?.slice(0, 2).toUpperCase() || 'U'
   }
 
   return (
@@ -39,7 +95,7 @@ export default function Profile() {
               {/* Avatar */}
               <div className="text-center mb-6">
                 <div className="w-24 h-24 bg-green-100 rounded-full mx-auto mb-4 flex items-center justify-center">
-                  <span className="text-3xl font-bold text-green-600">JD</span>
+                  <span className="text-3xl font-bold text-green-600">{getUserInitials()}</span>
                 </div>
                 <h2 className="text-xl font-semibold text-gray-900">{userProfile.name}</h2>
                 <p className="text-gray-600">{userProfile.email}</p>
