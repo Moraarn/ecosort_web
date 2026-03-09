@@ -4,7 +4,7 @@ export interface User {
   full_name?: string
   avatar_url?: string
   phone?: string
-  role: 'user' | 'admin'
+  role: 'citizen' | 'admin'
   total_points: number
   created_at: string
   updated_at: string
@@ -26,6 +26,7 @@ export interface SignupCredentials {
   password: string
   full_name: string
   phone?: string
+  role: 'citizen' | 'admin'
 }
 
 export interface ProfileUpdate {

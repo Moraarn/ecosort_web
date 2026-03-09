@@ -3,17 +3,20 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/contexts/AuthContext"
 
 export default function Signup() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     fullName: "",
-    phone: ""
+    phone: "",
+    role: "citizen" as "citizen" | "admin"
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
+  const { signup } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -21,16 +24,16 @@ export default function Signup() {
     setError("")
 
     try {
-      // Mock signup - replace with actual Supabase auth
-      console.log("Signing up:", formData)
+      await signup(formData.email, formData.password, formData.fullName, formData.phone, formData.role)
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Redirect to dashboard
-      router.push("/dashboard")
-    } catch (err) {
-      setError("Failed to create account. Please try again.")
+      // Redirect to appropriate dashboard
+      if (formData.role === 'admin') {
+        router.push('/admin/overview')
+      } else {
+        router.push('/dashboard')
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to create account. Please try again.")
     } finally {
       setLoading(false)
     }
@@ -111,6 +114,45 @@ export default function Signup() {
                 placeholder="Enter your phone number"
                 style={{ color: '#1A202C' }}
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900 mb-2">
+                Account Type
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="relative flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                  <input
+                    type="radio"
+                    name="role"
+                    value="citizen"
+                    checked={formData.role === "citizen"}
+                    onChange={handleChange}
+                    className="sr-only"
+                  />
+                  <div className={`text-center ${formData.role === "citizen" ? "border-green-500 bg-green-50" : "border-gray-300"}`}>
+                    <div className="text-2xl mb-1">👤</div>
+                    <div className="font-medium text-gray-900">Citizen</div>
+                    <div className="text-xs text-gray-500">Join as a regular user</div>
+                  </div>
+                </label>
+
+                <label className="relative flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                  <input
+                    type="radio"
+                    name="role"
+                    value="admin"
+                    checked={formData.role === "admin"}
+                    onChange={handleChange}
+                    className="sr-only"
+                  />
+                  <div className={`text-center ${formData.role === "admin" ? "border-green-500 bg-green-50" : "border-gray-300"}`}>
+                    <div className="text-2xl mb-1">👨‍💼</div>
+                    <div className="font-medium text-gray-900">Admin</div>
+                    <div className="text-xs text-gray-500">Manage waste system</div>
+                  </div>
+                </label>
+              </div>
             </div>
 
             <div>

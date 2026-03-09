@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/contexts/AuthContext"
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -12,6 +13,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
+  const { login } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -19,16 +21,17 @@ export default function Login() {
     setError("")
 
     try {
-      // Mock login - replace with actual Supabase auth
-      console.log("Logging in:", formData)
-
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      // Redirect to dashboard
-      router.push("/dashboard")
-    } catch (err) {
-      setError("Invalid email or password. Please try again.")
+      await login(formData.email, formData.password)
+      
+      // Redirect to appropriate dashboard
+      const userRole = localStorage.getItem('user_role')
+      if (userRole === 'admin') {
+        router.push('/admin/overview')
+      } else {
+        router.push('/dashboard')
+      }
+    } catch (err: any) {
+      setError(err.message || 'Invalid email or password. Please try again.')
     } finally {
       setLoading(false)
     }
