@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     // Mock AI classification - replace with actual AI model
     const wasteCategories = [
       { name: "Plastic", color: "blue", icon: "🍶", points: 15, instructions: "Rinse and place in blue bin. Remove caps.", impact: "Takes 450+ years to decompose" },
-      { name: "Organic", color: "orange", icon: "🍃", points: 10, instructions: "Place in orange compost bin. No plastic bags.", impact: "Reduces methane emissions" },
+      { name: "Organic", color: "green", icon: "🍃", points: 10, instructions: "Place in green compost bin. No plastic bags.", impact: "Reduces methane emissions" },
       { name: "Metal", color: "yellow", icon: "🥫", points: 20, instructions: "Rinse and place in yellow bin. Crush cans to save space.", impact: "Infinitely recyclable" },
       { name: "Glass", color: "red", icon: "🍾", points: 18, instructions: "Rinse and place in red bin. Separate by color if possible.", impact: "100% recyclable without quality loss" },
       { name: "Paper", color: "blue", icon: "📄", points: 12, instructions: "Keep dry and place in blue bin. No waxed paper.", impact: "Saves trees and reduces energy" },

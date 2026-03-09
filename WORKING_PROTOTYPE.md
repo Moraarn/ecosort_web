@@ -89,7 +89,7 @@
 ## 🎨 **UI/UX FEATURES**
 
 ### Design System:
-- ✅ Modern color scheme (orange eco-friendly theme)
+- ✅ Modern color scheme (green eco-friendly theme)
 - ✅ Consistent typography and spacing
 - ✅ Professional card-based layouts
 - ✅ Smooth animations and transitions

@@ -127,7 +127,7 @@ CREATE TABLE leaderboard (
 -- Insert default waste categories
 INSERT INTO waste_categories (name, description, bin_color, disposal_instructions, environmental_impact, points_value, icon_url) VALUES
 ('Plastic', 'Plastic bottles, containers, and packaging', 'Blue', 'Rinse and place in blue bin. Remove caps.', 'Takes 450+ years to decompose', 15, '/icons/plastic.svg'),
-('Organic', 'Food waste, yard waste, and compostables', 'orange', 'Place in orange compost bin. No plastic bags.', 'Reduces methane emissions', 10, '/icons/organic.svg'),
+('Organic', 'Food waste, yard waste, and compostables', 'green', 'Place in green compost bin. No plastic bags.', 'Reduces methane emissions', 10, '/icons/organic.svg'),
 ('Metal', 'Aluminum cans, steel containers, and metal scraps', 'Yellow', 'Rinse and place in yellow bin. Crush cans to save space.', 'Infinitely recyclable', 20, '/icons/metal.svg'),
 ('Glass', 'Glass bottles, jars, and containers', 'Red', 'Rinse and place in red bin. Separate by color if possible.', '100% recyclable without quality loss', 18, '/icons/glass.svg'),
 ('Paper', 'Newspapers, cardboard, and clean paper products', 'Blue', 'Keep dry and place in blue bin. No waxed paper.', 'Saves trees and reduces energy', 12, '/icons/paper.svg'),
@@ -138,7 +138,7 @@ INSERT INTO achievements (name, description, icon_url, points_required, badge_ty
 ('First Sort', 'Successfully classify your first waste item', '/icons/first-sort.svg', 1, 'disposal'),
 ('Eco Warrior', 'Classify 50 waste items correctly', '/icons/eco-warrior.svg', 50, 'disposal'),
 ('Plastic Free', 'Dispose 100 plastic items correctly', '/icons/plastic-free.svg', 100, 'category'),
-('orange Thumb', 'Dispose 50 organic items correctly', '/icons/orange-thumb.svg', 50, 'category'),
+('green Thumb', 'Dispose 50 organic items correctly', '/icons/green-thumb.svg', 50, 'category'),
 ('Week Streak', 'Dispose waste for 7 consecutive days', '/icons/week-streak.svg', 7, 'streak'),
 ('Month Master', 'Dispose waste for 30 consecutive days', '/icons/month-master.svg', 30, 'streak'),
 ('Top Recycler', 'Reach top 10 on leaderboard', '/icons/top-recycler.svg', 1, 'special'),
