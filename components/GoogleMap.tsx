@@ -72,14 +72,14 @@ export default function GoogleMap({ markers, onMarkerClick, onMapClick, center =
           content: `
             <div style="padding: 8px; max-width: 200px;">
               <h3 style="margin: 0 0 8px 0; font-weight: bold;">${markerData.name}</h3>
-              <p style="margin: 4px 0; font-size: 14px;"><strong>Status:</strong> ${markerData.status}</p>
-              <p style="margin: 4px 0; font-size: 14px;"><strong>Progress:</strong> ${markerData.progress}%</p>
-              <p style="margin: 4px 0; font-size: 14px;"><strong>Waste Type:</strong> ${markerData.wasteType}</p>
+              <p style="margin: 0 0 4px 0; font-size: 12px;">Status: ${markerData.status}</p>
+              <p style="margin: 0 0 4px 0; font-size: 12px;">Fill Level: ${markerData.progress}%</p>
+              <p style="margin: 0 0 4px 0; font-size: 12px;">Waste Type: ${markerData.wasteType}</p>
             </div>
           `
         })
 
-        marker.addListener("click", () => {
+        marker.addListener('click', () => {
           infoWindow.open(map, marker)
           if (onMarkerClick) {
             onMarkerClick(markerData)
@@ -92,11 +92,51 @@ export default function GoogleMap({ markers, onMarkerClick, onMapClick, center =
 
     // Load Google Maps script
     const loadGoogleMapsScript = () => {
+      // Check if Google Maps API key is available
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+      
+      if (!apiKey) {
+        console.warn('Google Maps API key not configured. Map functionality will be limited.')
+        // Show a fallback message
+        if (mapRef.current) {
+          mapRef.current.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f3f4f6; border-radius: 8px; text-align: center; padding: 20px;">
+              <div>
+                <div style="font-size: 48px; margin-bottom: 16px;">🗺️</div>
+                <h3 style="margin: 0 0 8px 0; color: #374151;">Map Unavailable</h3>
+                <p style="margin: 0; color: #6b7280; font-size: 14px;">
+                  Google Maps API key not configured.<br>
+                  Please set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in your environment variables.
+                </p>
+              </div>
+            </div>
+          `
+        }
+        return
+      }
+
       const script = document.createElement("script")
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`
       script.async = true
       script.defer = true
       script.onload = initMap
+      script.onerror = () => {
+        console.error('Failed to load Google Maps script')
+        if (mapRef.current) {
+          mapRef.current.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f3f4f6; border-radius: 8px; text-align: center; padding: 20px;">
+              <div>
+                <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+                <h3 style="margin: 0 0 8px 0; color: #374151;">Map Loading Error</h3>
+                <p style="margin: 0; color: #6b7280; font-size: 14px;">
+                  Unable to load Google Maps.<br>
+                  Please check your internet connection and API key.
+                </p>
+              </div>
+            </div>
+          `
+        }
+      }
       document.head.appendChild(script)
     }
 
