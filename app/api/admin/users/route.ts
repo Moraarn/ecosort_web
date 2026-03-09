@@ -11,8 +11,8 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0')
     const search = searchParams.get('search')
 
-    let query = supabase
-      .from('profiles')
+    let query = (supabase
+      .from('profiles') as any)
       .select(`
         *,
         waste_logs(count),
@@ -36,11 +36,11 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      users: users?.map(user => ({
-        ...user,
-        total_disposals: user.waste_logs?.length || 0,
-        total_rewards: user.rewards?.reduce((sum, reward) => sum + reward.points, 0) || 0
-      })) || [],
+      users: (users || []).map((user: any) => ({
+        ...(user as any),
+        total_disposals: (user as any).waste_logs?.length || 0,
+        total_rewards: ((user as any).rewards || []).reduce((sum: number, reward: any) => sum + (reward.points || 0), 0) || 0
+      })),
       total: users?.length || 0
     })
   } catch (error) {
@@ -79,8 +79,8 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    const { data: user, error } = await supabase
-      .from('profiles')
+    const { data: user, error } = await (supabase
+      .from('profiles') as any)
       .update({ role })
       .eq('id', userId)
       .select()

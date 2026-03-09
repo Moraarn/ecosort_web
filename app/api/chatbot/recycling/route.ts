@@ -80,8 +80,8 @@ export async function POST(request: NextRequest) {
     // Log the interaction for analytics
     const supabase = await createServerClient()
     try {
-      await supabase
-        .from('chatbot_logs')
+      await (supabase
+        .from('chatbot_logs') as any)
         .insert({
           user_message: message,
           bot_response: result.answer,

@@ -1,3 +1,5 @@
+import { Achievement } from './shared'
+
 export interface WasteCategory {
   id: number
   name: string

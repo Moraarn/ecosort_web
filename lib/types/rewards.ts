@@ -1,3 +1,7 @@
+import { WasteLog } from './waste'
+import { User } from './auth'
+import { Achievement } from './shared'
+
 export interface Reward {
   id: string
   user_id: string
@@ -7,16 +11,6 @@ export interface Reward {
   description: string
   created_at: string
   waste_log?: WasteLog
-}
-
-export interface Achievement {
-  id: number
-  name: string
-  description: string
-  icon_url: string
-  points_required: number
-  badge_type: 'disposal' | 'streak' | 'category' | 'special'
-  created_at: string
 }
 
 export interface UserAchievement {

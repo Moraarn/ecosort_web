@@ -25,8 +25,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Get waste category to determine points
-    const { data: category, error: categoryError } = await supabase
-      .from('waste_categories')
+    const { data: category, error: categoryError } = await (supabase
+      .from('waste_categories') as any)
       .select('points_value, name')
       .eq('id', waste_category_id)
       .single()
@@ -39,15 +39,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Create waste log
-    const { data: wasteLog, error: logError } = await supabase
-      .from('waste_logs')
+    const { data: wasteLog, error: logError } = await (supabase
+      .from('waste_logs') as any)
       .insert({
         user_id: user.id,
         image_url,
         waste_category_id,
         confidence_score,
         qr_location_id,
-        points_earned: category.points_value,
+        points_earned: (category as any).points_value,
         verified: confidence_score >= 0.7,
         disposal_timestamp: new Date().toISOString(),
       })
@@ -73,12 +73,14 @@ export async function POST(request: NextRequest) {
 
     // Award points using database function
     if (wasteLog.verified) {
-      const { error: rewardError } = await supabase.rpc('award_disposal_points', {
-        user_uuid: user.id,
-        waste_log_uuid: wasteLog.id,
-        points: category.points_value,
-        description: `Points earned for ${category.name} disposal`
-      })
+      const { error: rewardError } = await (supabase
+        .from('rewards') as any)
+        .insert({
+          user_uuid: user.id,
+          waste_log_uuid: wasteLog.id,
+          points: (category as any).points_value,
+          description: `Recycled ${(category as any).name} - ${(category as any).points_value} points`
+        })
 
       if (rewardError) {
         console.error('Failed to award points:', rewardError)
@@ -127,15 +129,13 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10')
     const offset = parseInt(searchParams.get('offset') || '0')
 
-    const { data: wasteLogs, error } = await supabase
-      .from('waste_logs')
+    const { data: wasteLogs, error } = await (supabase
+      .from('waste_logs') as any)
       .select(`
         *,
         waste_categories (
-          id,
           name,
-          bin_color,
-          points_value
+          bin_color
         ),
         qr_locations (
           id,

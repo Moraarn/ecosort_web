@@ -2,6 +2,39 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, requireAdmin } from '@/lib/supabase/server'
 import { z } from 'zod'
 
+interface AccuracyLog {
+  confidence_score?: number
+}
+
+interface PointsReward {
+  points?: number
+}
+
+interface WasteAnalyticsItem {
+  category_name?: string
+  total_disposals?: number
+  total_points?: number
+  avg_confidence?: number
+}
+
+interface TimeSeriesLog {
+  disposal_timestamp?: string
+  confidence_score?: number
+}
+
+interface LocationData {
+  id?: any
+  location_name?: string
+  address?: string
+  waste_logs?: any[]
+  bins?: any[]
+}
+
+interface BinData {
+  bin_id?: any
+  status?: any
+}
+
 const adminActionSchema = z.object({
   action: z.enum(['update_bin_status', 'generate_report', 'export_data']),
   data: z.any().optional(),
@@ -37,8 +70,8 @@ export async function GET(request: NextRequest) {
           supabase.from('profiles').select('created_at').eq('created_at', new Date().toISOString().split('T')[0])
         ])
 
-        const avgAccuracy = accuracyData?.reduce((sum, log) => sum + (log.confidence_score || 0), 0) / (accuracyData?.length || 1) * 100
-        const totalPoints = pointsData?.reduce((sum, reward) => sum + reward.points, 0) || 0
+        const avgAccuracy = (accuracyData as AccuracyLog[] || []).reduce((sum, log) => sum + (log.confidence_score || 0), 0) / ((accuracyData?.length || 1) * 100)
+        const totalPoints = (pointsData as PointsReward[] || []).reduce((sum, reward) => sum + (reward.points || 0), 0) || 0
 
         data = {
           totalUsers,
@@ -59,15 +92,15 @@ export async function GET(request: NextRequest) {
           .limit(timeframe === 'week' ? 7 : timeframe === 'month' ? 30 : 365)
 
         // Aggregate by category
-        const categoryStats = wasteAnalytics?.reduce((acc, item) => {
+        const categoryStats = (wasteAnalytics as WasteAnalyticsItem[] || []).reduce((acc: any[], item: WasteAnalyticsItem) => {
           const existing = acc.find(stat => stat.category === item.category_name)
           if (existing) {
-            existing.count += item.total_disposals
+            existing.count += item.total_disposals || 0
             existing.totalPoints += item.total_points || 0
           } else {
             acc.push({
               category: item.category_name,
-              count: item.total_disposals,
+              count: item.total_disposals || 0,
               totalPoints: item.total_points || 0,
               avgConfidence: item.avg_confidence || 0
             })
@@ -90,8 +123,8 @@ export async function GET(request: NextRequest) {
           .gte('disposal_timestamp', startDate.toISOString())
 
         // Group by date
-        const groupedData = timeSeriesData?.reduce((acc, log) => {
-          const date = log.disposal_timestamp.split('T')[0]
+        const groupedData = (timeSeriesData as TimeSeriesLog[] || []).reduce((acc: any[], log: TimeSeriesLog) => {
+          const date = log.disposal_timestamp?.split('T')[0] || 'unknown'
           const existing = acc.find(item => item.date === date)
           if (existing) {
             existing.disposals += 1
@@ -126,13 +159,13 @@ export async function GET(request: NextRequest) {
           `)
 
         data = {
-          locationAnalytics: locationAnalytics?.map(location => ({
+          locationAnalytics: (locationAnalytics as LocationData[] || []).map((location: LocationData) => ({
             id: location.id,
             location_name: location.location_name,
             address: location.address,
             total_disposals: location.waste_logs?.length || 0,
-            avg_fill_level: location.bins?.reduce((sum, bin) => sum + (bin.bin_status?.fill_level_percentage || 0), 0) / (location.bins?.length || 1),
-            status: location.bins?.some(bin => bin.bin_status?.status === 'full') ? 'full' : 'normal'
+            avg_fill_level: (location.bins || []).reduce((sum: number, bin: any) => sum + (bin.bin_status?.fill_level_percentage || 0), 0) / (location.bins?.length || 1),
+            status: (location.bins || []).some((bin: any) => bin.bin_status?.status === 'full') ? 'full' : 'normal'
           })) || []
         }
         break
@@ -194,8 +227,8 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        const { error: updateError } = await supabase
-          .from('bin_status')
+        const { error: updateError } = await (supabase
+          .from('bin_status') as any)
           .upsert({
             bin_id: data.binId,
             status: data.status,

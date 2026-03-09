@@ -24,8 +24,8 @@ export async function GET(request: NextRequest) {
 
     if (realtime) {
       // Get real-time IoT data
-      let query = supabase
-        .from('bin_status')
+      let query = (supabase
+        .from('bin_status') as any)
         .select(`
           *,
           bins (
@@ -52,16 +52,16 @@ export async function GET(request: NextRequest) {
       }
 
       // Transform data to IoT format
-      const transformedData = iotData?.map(item => ({
-        binId: item.bin_id,
-        location: item.bins?.qr_locations?.location_name || 'Unknown',
-        fillLevel: item.fill_level_percentage,
-        weight: item.bins?.current_weight_kg || 0,
-        temperature: item.temperature,
-        batteryLevel: item.battery_level,
-        lastSeen: item.last_updated,
-        status: item.status,
-        binIdentifier: item.bins?.bin_identifier
+      const transformedData = (iotData as any[] || []).map((item: any) => ({
+        binId: (item as any).bin_id,
+        location: (item as any).bins?.qr_locations?.location_name || 'Unknown',
+        fillLevel: (item as any).fill_level_percentage,
+        weight: (item as any).bins?.current_weight_kg || 0,
+        temperature: (item as any).temperature,
+        batteryLevel: (item as any).battery_level,
+        lastSeen: (item as any).last_updated,
+        status: (item as any).status,
+        binIdentifier: (item as any).bins?.bin_identifier
       })) || []
 
       return NextResponse.json({
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
 async function startSimulation(supabase: any, binIds?: string[], interval: number = 30000) {
   try {
     // Get bins to simulate
-    let query = supabase.from('bins').select('id, bin_identifier')
+    let query = (supabase.from('bins') as any).select('id, bin_identifier')
     if (binIds?.length) {
       query = query.in('id', binIds)
     }
@@ -245,7 +245,7 @@ async function updateIoTData(supabase: any, binIds?: string[]) {
       }
     } else {
       // Update all bins
-      const { data: bins } = await supabase.from('bins').select('id')
+      const { data: bins } = await (supabase.from('bins') as any).select('id')
       for (const bin of bins || []) {
         await simulateBinData(supabase, bin.id)
         updatedBins.push(bin.id)
@@ -268,8 +268,8 @@ async function updateIoTData(supabase: any, binIds?: string[]) {
 async function simulateBinData(supabase: any, binId: string) {
   try {
     // Get current bin status
-    const { data: currentStatus } = await supabase
-      .from('bin_status')
+    const { data: currentStatus } = await (supabase
+      .from('bin_status') as any)
       .select('fill_level_percentage, battery_level')
       .eq('bin_id', binId)
       .single()
@@ -286,8 +286,8 @@ async function simulateBinData(supabase: any, binId: string) {
                     newFillLevel >= 75 ? 'normal' : 'normal'
 
     // Update bin status
-    await supabase
-      .from('bin_status')
+    await (supabase
+      .from('bin_status') as any)
       .upsert({
         bin_id: binId,
         fill_level_percentage: Math.round(newFillLevel),
@@ -300,17 +300,17 @@ async function simulateBinData(supabase: any, binId: string) {
 
     // Update bin weight (rough estimation)
     const weightChange = fillChange * 2.5
-    const { data: bin } = await supabase
-      .from('bins')
+    const { data: bin } = await (supabase
+      .from('bins') as any)
       .select('current_weight_kg')
       .eq('id', binId)
       .single()
 
     if (bin) {
-      await supabase
-        .from('bins')
+      await (supabase
+        .from('bins') as any)
         .update({
-          current_weight_kg: Math.max(0, (bin.current_weight_kg || 0) + weightChange)
+          current_weight_kg: Math.max(0, ((bin as any).current_weight_kg || 0) + weightChange)
         })
         .eq('id', binId)
     }

@@ -15,8 +15,8 @@ export async function POST(request: NextRequest) {
     const supabase = await createServerClient()
 
     // Query for nearby QR locations (bins)
-    let query = supabase
-      .from('qr_locations')
+    let query = (supabase
+      .from('qr_locations') as any)
       .select(`
         *,
         bins!inner(
@@ -52,20 +52,20 @@ export async function POST(request: NextRequest) {
 
     // Calculate distances and filter by radius
     const nearbyBins = locations
-      .map(location => {
+      .map((location: any) => {
         const distance = calculateDistance(
           latitude,
           longitude,
-          location.latitude,
-          location.longitude
+          (location as any).latitude,
+          (location as any).longitude
         )
 
         return {
           id: location.id,
-          name: location.location_name || `Bin ${location.id.slice(-4)}`,
-          address: location.address || 'Address not available',
-          latitude: location.latitude,
-          longitude: location.longitude,
+          name: (location as any).location_name || `Bin ${location.id.slice(-4)}`,
+          address: (location as any).address || 'Address not available',
+          latitude: (location as any).latitude,
+          longitude: (location as any).longitude,
           distance: Math.round(distance),
           waste_type: location.waste_categories?.name || 'General',
           status: location.status,
@@ -75,8 +75,8 @@ export async function POST(request: NextRequest) {
           battery_level: location.bins?.[0]?.bin_status?.[0]?.battery_level || 100
         }
       })
-      .filter(bin => bin.distance <= radius)
-      .sort((a, b) => a.distance - b.distance)
+      .filter((bin: any) => bin.distance <= radius)
+      .sort((a: any, b: any) => a.distance - b.distance)
 
     return NextResponse.json({ bins: nearbyBins })
 

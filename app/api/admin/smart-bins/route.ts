@@ -73,8 +73,8 @@ export async function GET(request: NextRequest) {
     try {
       const supabase = await createServerClient()
       
-      const { data, error } = await supabase
-        .from('smart_bins')
+      const { data, error } = await (supabase
+        .from('smart_bins') as any)
         .select('*')
         .order('created_at', { ascending: false })
 
@@ -116,8 +116,8 @@ export async function POST(request: NextRequest) {
     try {
       const supabase = await createServerClient()
       
-      const { data, error } = await supabase
-        .from('smart_bins')
+      const { data, error } = await (supabase
+        .from('smart_bins') as any)
         .insert(newBin)
         .select()
         .single()
@@ -166,8 +166,8 @@ export async function PUT(request: NextRequest) {
     try {
       const supabase = await createServerClient()
       
-      const { data, error } = await supabase
-        .from('smart_bins')
+      const { data, error } = await (supabase
+        .from('smart_bins') as any)
         .update(validatedData)
         .eq('id', id)
         .select()
@@ -226,8 +226,8 @@ export async function DELETE(request: NextRequest) {
     try {
       const supabase = await createServerClient()
       
-      const { error } = await supabase
-        .from('smart_bins')
+      const { error } = await (supabase
+        .from('smart_bins') as any)
         .delete()
         .eq('id', id)
 

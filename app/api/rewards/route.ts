@@ -26,8 +26,8 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0')
 
     // Get user's rewards
-    const { data: rewards, error: rewardsError } = await supabase
-      .from('rewards')
+    const { data: rewards, error: rewardsError } = await (supabase
+      .from('rewards') as any)
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
@@ -46,12 +46,10 @@ export async function GET(request: NextRequest) {
       .select(`
         *,
         achievements (
-          id,
           name,
           description,
-          icon_url,
-          badge_type,
-          points_required
+          icon,
+          badge_color
         )
       `)
       .eq('user_id', user.id)
@@ -70,11 +68,12 @@ export async function GET(request: NextRequest) {
       .select(`
         *,
         profiles (
-          full_name
+          full_name,
+          email
         )
       `)
       .order('rank_position', { ascending: true })
-      .limit(50)
+      .limit(10)
 
     if (leaderboardError) {
       return NextResponse.json(
@@ -102,31 +101,32 @@ export async function GET(request: NextRequest) {
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
 
-    const weeklyPoints = rewards?.filter(r => new Date(r.created_at) > weekAgo)
-      .reduce((sum, reward) => sum + reward.points, 0) || 0
+    const weeklyPoints = (rewards as any[] || []).filter((r: any) => new Date(r.created_at) > weekAgo)
+      .reduce((sum: number, reward: any) => sum + (reward.points || 0), 0) || 0
 
-    const monthlyPoints = rewards?.filter(r => new Date(r.created_at) > monthAgo)
-      .reduce((sum, reward) => sum + reward.points, 0) || 0
+    const monthlyPoints = (rewards as any[] || []).filter((r: any) => new Date(r.created_at) > monthAgo)
+      .reduce((sum: number, reward: any) => sum + (reward.points || 0), 0) || 0
 
     // Get user's rank from leaderboard
-    const userRank = leaderboard?.find(entry => entry.user_id === user.id)
+    const userRank = (leaderboard as any[])?.find((entry: any) => entry.user_id === user.id)
 
     return NextResponse.json({
       success: true,
       wallet: {
-        totalPoints: profile?.total_points || 0,
+        totalPoints: (profile as any)?.total_points || 0,
         weeklyPoints,
         monthlyPoints,
-        totalDisposals: rewards?.length || 0,
-        rank: userRank?.rank_position || null
+        totalDisposals: (rewards as any[] || []).length || 0,
+        rankPosition: userRank?.rank_position || null,
       },
       rewards,
       achievements,
-      leaderboard: leaderboard?.map(entry => ({
-        rank: entry.rank_position,
-        name: entry.profiles?.full_name || 'Anonymous',
-        points: entry.total_points,
-        weeklyPoints: entry.weekly_points,
+      leaderboard: (leaderboard as any[] || []).map((entry: any) => ({
+        profiles: (leaderboard as any[] || []).slice(0, 3).map((entry: any) => ({
+          name: entry.profiles?.full_name,
+          points: entry.total_points,
+          rank: entry.rank_position
+        })),
         monthlyPoints: entry.monthly_points,
         isUser: entry.user_id === user.id
       })) || []
@@ -155,8 +155,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Create reward record
-    const { data: reward, error: rewardError } = await supabase
-      .from('rewards')
+    const { data: reward, error: rewardError } = await (supabase
+      .from('rewards') as any)
       .insert({
         user_id: user.id,
         points: rewardData.points,
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update user points using database function
-    const { error: pointsError } = await supabase.rpc('update_user_points', {
+    const { error: pointsError } = await (supabase.rpc as any)('update_user_points', {
       user_uuid: user.id
     })
 

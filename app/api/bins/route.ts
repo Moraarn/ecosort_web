@@ -15,8 +15,8 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status')
     const locationId = searchParams.get('location_id')
 
-    let query = supabase
-      .from('bins')
+    let query = (supabase
+      .from('bins') as any)
       .select(`
         *,
         bin_status (
@@ -93,8 +93,8 @@ export async function POST(request: NextRequest) {
     const supabase = await createServerClient()
 
     // Check if bin exists
-    const { data: bin, error: binError } = await supabase
-      .from('bins')
+    const { data: bin, error: binError } = await (supabase
+      .from('bins') as any)
       .select('*')
       .eq('id', binId)
       .single()
@@ -110,8 +110,8 @@ export async function POST(request: NextRequest) {
     switch (updateData.action) {
       case 'update_fill_level':
         if (updateData.fill_level !== undefined) {
-          const { error: statusError } = await supabase
-            .from('bin_status')
+          const { error: statusError } = await (supabase
+            .from('bin_status') as any)
             .upsert({
               bin_id: binId,
               fill_level_percentage: updateData.fill_level,
@@ -131,8 +131,8 @@ export async function POST(request: NextRequest) {
 
       case 'update_weight':
         if (updateData.weight_kg !== undefined) {
-          const { error: updateError } = await supabase
-            .from('bins')
+          const { error: updateError } = await (supabase
+            .from('bins') as any)
             .update({ current_weight_kg: updateData.weight_kg })
             .eq('id', binId)
 
@@ -147,8 +147,8 @@ export async function POST(request: NextRequest) {
 
       case 'collect':
         // Reset bin status and weight
-        const { error: collectError } = await supabase
-          .from('bins')
+        const { error: collectError } = await (supabase
+          .from('bins') as any)
           .update({ 
             current_weight_kg: 0,
             last_collected: new Date().toISOString()
@@ -162,8 +162,8 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        const { error: statusResetError } = await supabase
-          .from('bin_status')
+        const { error: statusResetError } = await (supabase
+          .from('bin_status') as any)
           .upsert({
             bin_id: binId,
             fill_level_percentage: 0,
@@ -184,8 +184,8 @@ export async function POST(request: NextRequest) {
         const randomIncrease = Math.floor(Math.random() * 15) + 5
         
         // Get current status
-        const { data: currentStatus } = await supabase
-          .from('bin_status')
+        const { data: currentStatus } = await (supabase
+          .from('bin_status') as any)
           .select('fill_level_percentage')
           .eq('bin_id', binId)
           .single()
@@ -194,17 +194,20 @@ export async function POST(request: NextRequest) {
         const newWeight = (bin.current_weight_kg || 0) + (randomIncrease * 2.5)
 
         // Update bin weight
-        await supabase
-          .from('bins')
+        await (supabase
+          .from('bins') as any)
           .update({ current_weight_kg: newWeight })
           .eq('id', binId)
 
         // Update bin status
-        const { error: simError } = await supabase
-          .from('bin_status')
+        const { error: simError } = await (supabase
+          .from('bin_status') as any)
           .upsert({
             bin_id: binId,
             fill_level_percentage: newFillLevel,
+            battery_level: newFillLevel >= 75 ? 85 : 95,
+            temperature: 25 + Math.random() * 10,
+            humidity: 40 + Math.random() * 20,
             last_updated: new Date().toISOString(),
             status: newFillLevel >= 90 ? 'full' : 
                    newFillLevel >= 75 ? 'normal' : 'normal'
@@ -226,8 +229,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Get updated bin data
-    const { data: updatedBin } = await supabase
-      .from('bins')
+    const { data: updatedBin } = await (supabase
+      .from('bins') as any)
       .select(`
         *,
         bin_status (
@@ -242,7 +245,14 @@ export async function POST(request: NextRequest) {
           id,
           qr_code,
           location_name,
-          address
+          address,
+          latitude,
+          longitude,
+          waste_categories (
+            id,
+            name,
+            bin_color
+          )
         )
       `)
       .eq('id', binId)
@@ -274,8 +284,8 @@ export async function PUT(request: NextRequest) {
     const supabase = await createServerClient()
 
     // Get all bins with their status
-    const { data: bins, error: binsError } = await supabase
-      .from('bins')
+    const { data: bins, error: binsError } = await (supabase
+      .from('bins') as any)
       .select(`
         *,
         bin_status (
@@ -297,14 +307,14 @@ export async function PUT(request: NextRequest) {
 
     // Simulate IoT updates for all bins
     const updatedBins = await Promise.all(
-      bins.map(async (bin) => {
+      bins.map(async (bin: any) => {
         const randomChange = Math.floor(Math.random() * 10) - 3 // Random change between -3 and +6
         const newFillLevel = Math.max(0, Math.min(100, (bin.bin_status?.fill_level_percentage || 0) + randomChange))
         const newWeight = Math.max(0, (bin.current_weight_kg || 0) + randomChange * 1.5)
         
         // Update bin weight
-        await supabase
-          .from('bins')
+        await (supabase
+          .from('bins') as any)
           .update({ current_weight_kg: newWeight })
           .eq('id', bin.id)
 
@@ -312,14 +322,14 @@ export async function PUT(request: NextRequest) {
         const newStatus = newFillLevel >= 90 ? 'full' : 
                         newFillLevel >= 75 ? 'normal' : 'normal'
         
-        await supabase
-          .from('bin_status')
+        await (supabase
+          .from('bin_status') as any)
           .upsert({
             bin_id: bin.id,
             fill_level_percentage: newFillLevel,
-            battery_level: Math.max(0, (bin.bin_status?.battery_level || 100) - Math.random() * 2),
-            temperature: 20 + Math.random() * 15, // Random temperature between 20-35°C
-            humidity: 40 + Math.random() * 30, // Random humidity between 40-70%
+            battery_level: newFillLevel >= 75 ? 85 : 95,
+            temperature: 25 + Math.random() * 10,
+            humidity: 40 + Math.random() * 20,
             last_updated: new Date().toISOString(),
             status: newStatus
           })
@@ -330,8 +340,11 @@ export async function PUT(request: NextRequest) {
           bin_status: {
             ...bin.bin_status,
             fill_level_percentage: newFillLevel,
-            status: newStatus,
-            last_updated: new Date().toISOString()
+            battery_level: newFillLevel >= 75 ? 85 : 95,
+            temperature: 25 + Math.random() * 10,
+            humidity: 40 + Math.random() * 20,
+            last_updated: new Date().toISOString(),
+            status: newStatus
           }
         }
       })
@@ -347,6 +360,7 @@ export async function PUT(request: NextRequest) {
       message: `IoT simulation completed. ${binsNeedingCollection.length} bins need collection.`,
       timestamp: new Date().toISOString()
     })
+
   } catch (error) {
     return NextResponse.json(
       { error: 'Internal server error' },
