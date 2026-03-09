@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+// Check if OpenAI API key is configured
+const openaiApiKey = process.env.OPENAI_API_KEY
+
+if (!openaiApiKey) {
+  console.warn('OpenAI API key not configured. AI classification will use fallback.')
+}
+
+const openai = openaiApiKey ? new OpenAI({
+  apiKey: openaiApiKey,
+}) : null
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,6 +27,25 @@ export async function POST(request: NextRequest) {
     const categoryList = categories.map((cat: any) => 
       `${cat.id}: ${cat.name} - ${cat.description || 'No description'}`
     ).join('\n')
+
+    // Use fallback if OpenAI is not available
+    if (!openai) {
+      console.log('Using fallback classification (OpenAI not available)')
+      return NextResponse.json({
+        categoryId: categories[0]?.id || 1,
+        confidence: 0.8,
+        reasoning: 'Using fallback classification - OpenAI API not configured',
+        educationalContent: {
+          wasteType: 'General waste',
+          description: 'This item has been classified using a fallback system',
+          recyclable: true,
+          recyclingInstructions: 'Please check local recycling guidelines',
+          environmentalImpact: 'Proper disposal helps protect the environment',
+          alternatives: ['Reduce usage', 'Choose reusable alternatives'],
+          funFact: 'Recycling helps conserve natural resources'
+        }
+      })
+    }
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
