@@ -1,214 +1,91 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient, requireAdmin } from '@/lib/supabase/server'
+import { z } from 'zod'
 
 // IoT Simulation Service
 // This endpoint simulates real-time IoT data from smart bins
 // In production, this would be replaced by actual IoT device data
 
-interface IoTBinData {
-  binId: string
-  location: string
-  fillLevel: number
-  weight: number
-  temperature: number
-  batteryLevel: number
-  lastSeen: string
-  status: 'normal' | 'warning' | 'critical' | 'offline'
-}
+const simulationSchema = z.object({
+  action: z.enum(['start', 'stop', 'status', 'update']),
+  binIds: z.array(z.string()).optional(),
+  interval: z.number().min(1000).max(300000).optional(), // 1 second to 5 minutes
+})
 
-// Simulated IoT devices
-const iotDevices: IoTBinData[] = [
-  {
-    binId: "BIN001",
-    location: "Main Street - Recycling Center",
-    fillLevel: 45,
-    weight: 125.5,
-    temperature: 22.5,
-    batteryLevel: 87,
-    lastSeen: new Date().toISOString(),
-    status: 'normal'
-  },
-  {
-    binId: "BIN002", 
-    location: "City Park - Organic Waste",
-    fillLevel: 78,
-    weight: 89.2,
-    temperature: 24.1,
-    batteryLevel: 92,
-    lastSeen: new Date().toISOString(),
-    status: 'warning'
-  },
-  {
-    binId: "BIN003",
-    location: "Shopping Mall - Plastic Collection", 
-    fillLevel: 23,
-    weight: 45.8,
-    temperature: 21.8,
-    batteryLevel: 78,
-    lastSeen: new Date().toISOString(),
-    status: 'normal'
-  },
-  {
-    binId: "BIN004",
-    location: "School Campus - Paper Recycling",
-    fillLevel: 91,
-    weight: 156.3,
-    temperature: 23.2,
-    batteryLevel: 65,
-    lastSeen: new Date().toISOString(),
-    status: 'critical'
-  },
-  {
-    binId: "BIN005",
-    location: "Industrial Area - Metal Collection",
-    fillLevel: 67,
-    weight: 234.7,
-    temperature: 25.6,
-    batteryLevel: 83,
-    lastSeen: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // 5 mins ago
-    status: 'normal'
-  }
-]
-
-// Simulate IoT data changes
-function simulateIoTDataChange(device: IoTBinData): IoTBinData {
-  // Random fill level change (more realistic patterns)
-  const hour = new Date().getHours()
-  let fillChange = 0
-  
-  // Different patterns based on time of day
-  if (hour >= 6 && hour <= 9) {
-    // Morning rush - more waste
-    fillChange = Math.random() * 8 + 2
-  } else if (hour >= 12 && hour <= 14) {
-    // Lunch time - moderate waste
-    fillChange = Math.random() * 5 + 1
-  } else if (hour >= 17 && hour <= 20) {
-    // Evening - moderate waste
-    fillChange = Math.random() * 6 + 1
-  } else {
-    // Night/early morning - minimal waste
-    fillChange = Math.random() * 2 - 1 // Can be negative (compaction)
-  }
-  
-  device.fillLevel = Math.max(0, Math.min(100, device.fillLevel + fillChange))
-  device.weight = Math.max(0, device.weight + fillChange * 2.8)
-  
-  // Temperature fluctuation
-  device.temperature += (Math.random() - 0.5) * 0.5
-  device.temperature = Math.max(15, Math.min(35, device.temperature))
-  
-  // Battery drain (very slow)
-  device.batteryLevel = Math.max(0, device.batteryLevel - 0.01)
-  
-  // Update status based on fill level
-  if (device.fillLevel >= 90) {
-    device.status = 'critical'
-  } else if (device.fillLevel >= 75) {
-    device.status = 'warning'
-  } else {
-    device.status = 'normal'
-  }
-  
-  // Random offline simulation (rare)
-  if (Math.random() < 0.01) { // 1% chance
-    device.status = 'offline'
-    device.lastSeen = new Date(Date.now() - 15 * 60 * 1000).toISOString() // 15 mins ago
-  }
-  
-  device.lastSeen = new Date().toISOString()
-  
-  return device
-}
+// Store active simulations (in production, use Redis or database)
+const activeSimulations = new Map<string, NodeJS.Timeout>()
 
 export async function GET(request: NextRequest) {
   try {
+    const supabase = await createServerClient()
     const { searchParams } = new URL(request.url)
-    deviceId = searchParams.get('deviceId')
-    const action = searchParams.get('action')
-    
-    if (action === 'simulate') {
-      // Run simulation for all devices
-      const simulatedDevices = iotDevices.map(device => simulateIoTDataChange(device))
-      
-      // Check for collection alerts
-      const criticalBins = simulatedDevices.filter(device => device.status === 'critical')
-      const offlineDevices = simulatedDevices.filter(device => device.status === 'offline')
-      const lowBatteryDevices = simulatedDevices.filter(device => device.batteryLevel < 20)
-      
-      // Generate alerts
-      const alerts = []
-      
-      if (criticalBins.length > 0) {
-        alerts.push({
-          type: 'collection_needed',
-          severity: 'high',
-          message: `${criticalBins.length} bin(s) need immediate collection`,
-          bins: criticalBins.map(bin => ({ binId: bin.binId, location: bin.location, fillLevel: bin.fillLevel }))
-        })
+    const binId = searchParams.get('binId')
+    const realtime = searchParams.get('realtime') === 'true'
+
+    if (realtime) {
+      // Get real-time IoT data
+      let query = supabase
+        .from('bin_status')
+        .select(`
+          *,
+          bins (
+            *,
+            qr_locations (
+              location_name,
+              address
+            )
+          )
+        `)
+        .order('last_updated', { ascending: false })
+
+      if (binId) {
+        query = query.eq('bin_id', binId)
       }
-      
-      if (offlineDevices.length > 0) {
-        alerts.push({
-          type: 'device_offline',
-          severity: 'medium',
-          message: `${offlineDevices.length} device(s) are offline`,
-          devices: offlineDevices.map(device => ({ binId: device.binId, location: device.location, lastSeen: device.lastSeen }))
-        })
+
+      const { data: iotData, error } = await query
+
+      if (error) {
+        return NextResponse.json(
+          { error: error.message },
+          { status: 400 }
+        )
       }
-      
-      if (lowBatteryDevices.length > 0) {
-        alerts.push({
-          type: 'low_battery',
-          severity: 'low',
-          message: `${lowBatteryDevices.length} device(s) have low battery`,
-          devices: lowBatteryDevices.map(device => ({ binId: device.binId, location: device.location, batteryLevel: device.batteryLevel }))
-        })
-      }
-      
+
+      // Transform data to IoT format
+      const transformedData = iotData?.map(item => ({
+        binId: item.bin_id,
+        location: item.bins?.qr_locations?.location_name || 'Unknown',
+        fillLevel: item.fill_level_percentage,
+        weight: item.bins?.current_weight_kg || 0,
+        temperature: item.temperature,
+        batteryLevel: item.battery_level,
+        lastSeen: item.last_updated,
+        status: item.status,
+        binIdentifier: item.bins?.bin_identifier
+      })) || []
+
       return NextResponse.json({
         success: true,
-        devices: simulatedDevices,
-        alerts: alerts,
-        summary: {
-          totalDevices: simulatedDevices.length,
-          normalBins: simulatedDevices.filter(d => d.status === 'normal').length,
-          warningBins: simulatedDevices.filter(d => d.status === 'warning').length,
-          criticalBins: criticalBins.length,
-          offlineDevices: offlineDevices.length,
-          averageFillLevel: simulatedDevices.reduce((sum, d) => sum + d.fillLevel, 0) / simulatedDevices.length,
-          totalWeight: simulatedDevices.reduce((sum, d) => sum + d.weight, 0)
-        },
+        iotData: transformedData,
         timestamp: new Date().toISOString()
       })
-    }
-    
-    if (deviceId) {
-      // Get specific device data
-      const device = iotDevices.find(d => d.binId === deviceId)
-      if (!device) {
-        return NextResponse.json({ error: 'Device not found' }, { status: 404 })
-      }
-      
+    } else {
+      // Get simulation status
+      const simulationStatus = Array.from(activeSimulations.keys()).map(binId => ({
+        binId,
+        status: 'running',
+        startTime: new Date().toISOString()
+      }))
+
       return NextResponse.json({
         success: true,
-        device: simulateIoTDataChange({ ...device }),
-        timestamp: new Date().toISOString()
+        activeSimulations: simulationStatus,
+        totalActive: activeSimulations.size
       })
     }
-    
-    // Get all devices data
-    const currentDevices = iotDevices.map(device => simulateIoTDataChange({ ...device }))
-    
-    return NextResponse.json({
-      success: true,
-      devices: currentDevices,
-      timestamp: new Date().toISOString()
-    })
-    
   } catch (error) {
-    console.error('IoT simulation error:', error)
     return NextResponse.json(
-      { error: 'Failed to run IoT simulation' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
@@ -216,73 +93,231 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { binId, command, parameters } = await request.json()
-    
-    if (!binId || !command) {
-      return NextResponse.json({ error: 'Bin ID and command are required' }, { status: 400 })
-    }
-    
-    const deviceIndex = iotDevices.findIndex(d => d.binId === binId)
-    if (deviceIndex === -1) {
-      return NextResponse.json({ error: 'Device not found' }, { status: 404 })
-    }
-    
-    const device = iotDevices[deviceIndex]
-    
-    switch (command) {
-      case 'reset_fill_level':
-        device.fillLevel = 0
-        device.weight = 0
-        device.lastSeen = new Date().toISOString()
-        break
-        
-      case 'set_fill_level':
-        if (parameters?.fillLevel !== undefined) {
-          device.fillLevel = Math.max(0, Math.min(100, parameters.fillLevel))
-          device.weight = device.fillLevel * 2.8
-          device.lastSeen = new Date().toISOString()
-        }
-        break
-        
-      case 'calibrate':
-        // Simulate calibration process
-        device.temperature = 22.0
-        device.batteryLevel = 100
-        device.lastSeen = new Date().toISOString()
-        break
-        
-      case 'restart':
-        // Simulate device restart
-        device.lastSeen = new Date(Date.now() - 2 * 60 * 1000).toISOString()
-        device.status = 'normal'
-        break
-        
+    const supabase = await createServerClient()
+    const body = await request.json()
+    const { action, binIds, interval } = simulationSchema.parse(body)
+
+    switch (action) {
+      case 'start':
+        return await startSimulation(supabase, binIds, interval)
+      
+      case 'stop':
+        return await stopSimulation(binIds)
+      
+      case 'status':
+        return await getSimulationStatus()
+      
+      case 'update':
+        return await updateIoTData(supabase, binIds)
+      
       default:
-        return NextResponse.json({ error: 'Invalid command' }, { status: 400 })
+        return NextResponse.json(
+          { error: 'Invalid action' },
+          { status: 400 }
+        )
     }
-    
-    // Update status based on new fill level
-    if (device.fillLevel >= 90) {
-      device.status = 'critical'
-    } else if (device.fillLevel >= 75) {
-      device.status = 'warning'
-    } else {
-      device.status = 'normal'
-    }
-    
-    console.log(`IoT Command executed:`, { binId, command, result: device })
-    
-    return NextResponse.json({
-      success: true,
-      device: device,
-      message: `Command '${command}' executed successfully on ${binId}`
-    })
-    
   } catch (error) {
-    console.error('IoT command error:', error)
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid input', details: error.errors },
+        { status: 400 }
+      )
+    }
+
     return NextResponse.json(
-      { error: 'Failed to execute IoT command' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
 }
+
+async function startSimulation(supabase: any, binIds?: string[], interval: number = 30000) {
+  try {
+    // Get bins to simulate
+    let query = supabase.from('bins').select('id, bin_identifier')
+    if (binIds?.length) {
+      query = query.in('id', binIds)
+    }
+
+    const { data: bins, error } = await query
+
+    if (error || !bins?.length) {
+      return NextResponse.json(
+        { error: 'No bins found for simulation' },
+        { status: 404 }
+      )
+    }
+
+    // Start simulation for each bin
+    const startedSimulations = []
+    for (const bin of bins) {
+      if (activeSimulations.has(bin.id)) {
+        continue // Already running
+      }
+
+      const simulationInterval = setInterval(async () => {
+        await simulateBinData(supabase, bin.id)
+      }, interval)
+
+      activeSimulations.set(bin.id, simulationInterval)
+      startedSimulations.push(bin.id)
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Simulation started for ${startedSimulations.length} bins`,
+      startedBins: startedSimulations,
+      interval
+    })
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to start simulation' },
+      { status: 500 }
+    )
+  }
+}
+
+async function stopSimulation(binIds?: string[]) {
+  try {
+    const stoppedSimulations = []
+
+    if (binIds?.length) {
+      // Stop specific simulations
+      for (const binId of binIds) {
+        const interval = activeSimulations.get(binId)
+        if (interval) {
+          clearInterval(interval)
+          activeSimulations.delete(binId)
+          stoppedSimulations.push(binId)
+        }
+      }
+    } else {
+      // Stop all simulations
+      for (const [binId, interval] of activeSimulations) {
+        clearInterval(interval)
+        stoppedSimulations.push(binId)
+      }
+      activeSimulations.clear()
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Simulation stopped for ${stoppedSimulations.length} bins`,
+      stoppedBins: stoppedSimulations
+    })
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to stop simulation' },
+      { status: 500 }
+    )
+  }
+}
+
+async function getSimulationStatus() {
+  try {
+    const status = Array.from(activeSimulations.entries()).map(([binId, interval]) => ({
+      binId,
+      status: 'running',
+      interval: 'active'
+    }))
+
+    return NextResponse.json({
+      success: true,
+      activeSimulations: status,
+      totalActive: activeSimulations.size
+    })
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to get simulation status' },
+      { status: 500 }
+    )
+  }
+}
+
+async function updateIoTData(supabase: any, binIds?: string[]) {
+  try {
+    const updatedBins = []
+
+    if (binIds?.length) {
+      for (const binId of binIds) {
+        await simulateBinData(supabase, binId)
+        updatedBins.push(binId)
+      }
+    } else {
+      // Update all bins
+      const { data: bins } = await supabase.from('bins').select('id')
+      for (const bin of bins || []) {
+        await simulateBinData(supabase, bin.id)
+        updatedBins.push(bin.id)
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `IoT data updated for ${updatedBins.length} bins`,
+      updatedBins
+    })
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to update IoT data' },
+      { status: 500 }
+    )
+  }
+}
+
+async function simulateBinData(supabase: any, binId: string) {
+  try {
+    // Get current bin status
+    const { data: currentStatus } = await supabase
+      .from('bin_status')
+      .select('fill_level_percentage, battery_level')
+      .eq('bin_id', binId)
+      .single()
+
+    // Simulate realistic IoT changes
+    const fillChange = (Math.random() - 0.3) * 10 // Random change between -3 and +7
+    const newFillLevel = Math.max(0, Math.min(100, (currentStatus?.fill_level_percentage || 0) + fillChange))
+    const newBatteryLevel = Math.max(0, (currentStatus?.battery_level || 100) - Math.random() * 0.5)
+    const newTemperature = 20 + Math.random() * 15 // 20-35°C
+    const newHumidity = 40 + Math.random() * 30 // 40-70%
+
+    // Determine status based on fill level
+    const newStatus = newFillLevel >= 90 ? 'full' : 
+                    newFillLevel >= 75 ? 'normal' : 'normal'
+
+    // Update bin status
+    await supabase
+      .from('bin_status')
+      .upsert({
+        bin_id: binId,
+        fill_level_percentage: Math.round(newFillLevel),
+        battery_level: Math.round(newBatteryLevel),
+        temperature: Math.round(newTemperature * 10) / 10,
+        humidity: Math.round(newHumidity * 10) / 10,
+        status: newStatus,
+        last_updated: new Date().toISOString()
+      })
+
+    // Update bin weight (rough estimation)
+    const weightChange = fillChange * 2.5
+    const { data: bin } = await supabase
+      .from('bins')
+      .select('current_weight_kg')
+      .eq('id', binId)
+      .single()
+
+    if (bin) {
+      await supabase
+        .from('bins')
+        .update({
+          current_weight_kg: Math.max(0, (bin.current_weight_kg || 0) + weightChange)
+        })
+        .eq('id', binId)
+    }
+
+    console.log(`IoT simulation updated bin ${binId}: fill=${Math.round(newFillLevel)}%, status=${newStatus}`)
+  } catch (error) {
+    console.error(`Failed to simulate bin ${binId}:`, error)
+  }
+}
+    

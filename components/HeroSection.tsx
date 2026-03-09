@@ -24,9 +24,9 @@ export default function HeroSection() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link href="/scan">
+              <Link href="recycling-assistant">
                 <button className="bg-green-500 text-white px-8 py-4 rounded-full hover:bg-green-600 transition-colors font-medium">
-                  Start Free Trial
+                  Start Sorting
                 </button>
               </Link>
               <button className="border border-green-400 text-green-400 px-8 py-4 rounded-full hover:bg-green-400 hover:text-white transition-colors font-medium">

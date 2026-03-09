@@ -1,105 +1,75 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@/lib/supabase/server'
+import { z } from 'zod'
 
-// Mock bins data - in production, this would query the bins table
-const mockBins = [
-  {
-    id: "1",
-    location_id: "1",
-    fill_level: 45,
-    weight_kg: 125.5,
-    last_collected: "2024-01-15T06:00:00Z",
-    status: "normal",
-    last_updated: "2024-01-15T14:30:00Z",
-    qr_location: {
-      id: "1",
-      code: "ECOSORT-BIN-001",
-      location: "Main Street - Recycling Center",
-      latitude: -1.2921,
-      longitude: 36.8219,
-      type: "Mixed Waste"
-    }
-  },
-  {
-    id: "2",
-    location_id: "2",
-    fill_level: 78,
-    weight_kg: 89.2,
-    last_collected: "2024-01-14T08:00:00Z",
-    status: "warning",
-    last_updated: "2024-01-15T14:30:00Z",
-    qr_location: {
-      id: "2",
-      code: "ECOSORT-BIN-002",
-      location: "City Park - Organic Waste",
-      latitude: -1.2833,
-      longitude: 36.8167,
-      type: "Organic"
-    }
-  },
-  {
-    id: "3",
-    location_id: "3",
-    fill_level: 23,
-    weight_kg: 45.8,
-    last_collected: "2024-01-15T10:00:00Z",
-    status: "normal",
-    last_updated: "2024-01-15T14:30:00Z",
-    qr_location: {
-      id: "3",
-      code: "ECOSORT-BIN-003",
-      location: "Shopping Mall - Plastic Collection",
-      latitude: -1.2747,
-      longitude: 36.8119,
-      type: "Plastic"
-    }
-  },
-  {
-    id: "4",
-    location_id: "4",
-    fill_level: 91,
-    weight_kg: 156.3,
-    last_collected: "2024-01-13T16:00:00Z",
-    status: "critical",
-    last_updated: "2024-01-15T14:30:00Z",
-    qr_location: {
-      id: "4",
-      code: "ECOSORT-BIN-004",
-      location: "School Campus - Paper Recycling",
-      latitude: -1.2956,
-      longitude: 36.8258,
-      type: "Paper"
-    }
-  }
-]
+const updateBinSchema = z.object({
+  action: z.enum(['update_fill_level', 'update_weight', 'collect', 'simulate_fill']),
+  fill_level: z.number().min(0).max(100).optional(),
+  weight_kg: z.number().min(0).optional(),
+})
 
 export async function GET(request: NextRequest) {
   try {
+    const supabase = await createServerClient()
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
     const locationId = searchParams.get('location_id')
 
-    let filteredBins = mockBins
+    let query = supabase
+      .from('bins')
+      .select(`
+        *,
+        bin_status (
+          fill_level_percentage,
+          battery_level,
+          temperature,
+          humidity,
+          status,
+          last_updated
+        ),
+        qr_locations (
+          id,
+          qr_code,
+          location_name,
+          address,
+          latitude,
+          longitude,
+          waste_categories (
+            id,
+            name,
+            bin_color
+          )
+        )
+      `)
 
     // Filter by status if provided
     if (status) {
-      filteredBins = filteredBins.filter(bin => bin.status === status)
+      query = query.eq('bin_status.status', status)
     }
 
     // Filter by location if provided
     if (locationId) {
-      filteredBins = filteredBins.filter(bin => bin.location_id === locationId)
+      query = query.eq('qr_location_id', locationId)
+    }
+
+    const { data: bins, error } = await query.order('created_at', { ascending: false })
+
+    if (error) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 400 }
+      )
     }
 
     return NextResponse.json({
       success: true,
-      bins: filteredBins,
-      total: filteredBins.length,
+      bins: bins,
+      total: bins?.length || 0,
       timestamp: new Date().toISOString()
     })
   } catch (error) {
-    console.error('Bins fetch error:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch bins data' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
@@ -107,85 +77,192 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { binId, action, fill_level, weight_kg } = await request.json()
+    const body = await request.json()
+    const { binId, action, fill_level, weight_kg } = body
+    
+    // Validate the update data
+    const updateData = updateBinSchema.parse({ action, fill_level, weight_kg })
 
-    if (!binId || !action) {
-      return NextResponse.json({ error: 'Bin ID and action are required' }, { status: 400 })
+    if (!binId) {
+      return NextResponse.json(
+        { error: 'Bin ID is required' },
+        { status: 400 }
+      )
     }
 
-    // Find the bin
-    const binIndex = mockBins.findIndex(bin => bin.id === binId)
-    if (binIndex === -1) {
-      return NextResponse.json({ error: 'Bin not found' }, { status: 404 })
-    }
+    const supabase = await createServerClient()
 
-    const bin = mockBins[binIndex]
+    // Check if bin exists
+    const { data: bin, error: binError } = await supabase
+      .from('bins')
+      .select('*')
+      .eq('id', binId)
+      .single()
+
+    if (binError || !bin) {
+      return NextResponse.json(
+        { error: 'Bin not found' },
+        { status: 404 }
+      )
+    }
 
     // Handle different actions
-    switch (action) {
+    switch (updateData.action) {
       case 'update_fill_level':
-        if (fill_level !== undefined) {
-          bin.fill_level = Math.max(0, Math.min(100, fill_level))
-          bin.last_updated = new Date().toISOString()
-          
-          // Update status based on fill level
-          if (bin.fill_level >= 90) {
-            bin.status = 'critical'
-          } else if (bin.fill_level >= 75) {
-            bin.status = 'warning'
-          } else {
-            bin.status = 'normal'
+        if (updateData.fill_level !== undefined) {
+          const { error: statusError } = await supabase
+            .from('bin_status')
+            .upsert({
+              bin_id: binId,
+              fill_level_percentage: updateData.fill_level,
+              last_updated: new Date().toISOString(),
+              status: updateData.fill_level >= 90 ? 'full' : 
+                     updateData.fill_level >= 75 ? 'normal' : 'normal'
+            })
+
+          if (statusError) {
+            return NextResponse.json(
+              { error: statusError.message },
+              { status: 400 }
+            )
           }
         }
         break
 
       case 'update_weight':
-        if (weight_kg !== undefined) {
-          bin.weight_kg = Math.max(0, weight_kg)
-          bin.last_updated = new Date().toISOString()
+        if (updateData.weight_kg !== undefined) {
+          const { error: updateError } = await supabase
+            .from('bins')
+            .update({ current_weight_kg: updateData.weight_kg })
+            .eq('id', binId)
+
+          if (updateError) {
+            return NextResponse.json(
+              { error: updateError.message },
+              { status: 400 }
+            )
+          }
         }
         break
 
       case 'collect':
-        bin.fill_level = 0
-        bin.weight_kg = 0
-        bin.last_collected = new Date().toISOString()
-        bin.last_updated = new Date().toISOString()
-        bin.status = 'normal'
+        // Reset bin status and weight
+        const { error: collectError } = await supabase
+          .from('bins')
+          .update({ 
+            current_weight_kg: 0,
+            last_collected: new Date().toISOString()
+          })
+          .eq('id', binId)
+
+        if (collectError) {
+          return NextResponse.json(
+            { error: collectError.message },
+            { status: 400 }
+          )
+        }
+
+        const { error: statusResetError } = await supabase
+          .from('bin_status')
+          .upsert({
+            bin_id: binId,
+            fill_level_percentage: 0,
+            last_updated: new Date().toISOString(),
+            status: 'normal'
+          })
+
+        if (statusResetError) {
+          return NextResponse.json(
+            { error: statusResetError.message },
+            { status: 400 }
+          )
+        }
         break
 
       case 'simulate_fill':
         // IoT simulation - add random fill
         const randomIncrease = Math.floor(Math.random() * 15) + 5
-        bin.fill_level = Math.min(100, bin.fill_level + randomIncrease)
-        bin.weight_kg += randomIncrease * 2.5 // Rough weight estimation
-        bin.last_updated = new Date().toISOString()
         
-        // Update status
-        if (bin.fill_level >= 90) {
-          bin.status = 'critical'
-        } else if (bin.fill_level >= 75) {
-          bin.status = 'warning'
-        } else {
-          bin.status = 'normal'
+        // Get current status
+        const { data: currentStatus } = await supabase
+          .from('bin_status')
+          .select('fill_level_percentage')
+          .eq('bin_id', binId)
+          .single()
+
+        const newFillLevel = Math.min(100, (currentStatus?.fill_level_percentage || 0) + randomIncrease)
+        const newWeight = (bin.current_weight_kg || 0) + (randomIncrease * 2.5)
+
+        // Update bin weight
+        await supabase
+          .from('bins')
+          .update({ current_weight_kg: newWeight })
+          .eq('id', binId)
+
+        // Update bin status
+        const { error: simError } = await supabase
+          .from('bin_status')
+          .upsert({
+            bin_id: binId,
+            fill_level_percentage: newFillLevel,
+            last_updated: new Date().toISOString(),
+            status: newFillLevel >= 90 ? 'full' : 
+                   newFillLevel >= 75 ? 'normal' : 'normal'
+          })
+
+        if (simError) {
+          return NextResponse.json(
+            { error: simError.message },
+            { status: 400 }
+          )
         }
         break
 
       default:
-        return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
+        return NextResponse.json(
+          { error: 'Invalid action' },
+          { status: 400 }
+        )
     }
 
-    console.log(`Bin ${binId} updated:`, { action, fill_level: bin.fill_level, status: bin.status })
+    // Get updated bin data
+    const { data: updatedBin } = await supabase
+      .from('bins')
+      .select(`
+        *,
+        bin_status (
+          fill_level_percentage,
+          battery_level,
+          temperature,
+          humidity,
+          status,
+          last_updated
+        ),
+        qr_locations (
+          id,
+          qr_code,
+          location_name,
+          address
+        )
+      `)
+      .eq('id', binId)
+      .single()
 
     return NextResponse.json({
       success: true,
-      bin: bin,
+      bin: updatedBin,
       message: `Bin ${binId} updated successfully`
     })
   } catch (error) {
-    console.error('Bin update error:', error)
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid input', details: error.errors },
+        { status: 400 }
+      )
+    }
+
     return NextResponse.json(
-      { error: 'Failed to update bin' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
@@ -194,27 +271,74 @@ export async function POST(request: NextRequest) {
 // IoT Simulation endpoint
 export async function PUT(request: NextRequest) {
   try {
+    const supabase = await createServerClient()
+
+    // Get all bins with their status
+    const { data: bins, error: binsError } = await supabase
+      .from('bins')
+      .select(`
+        *,
+        bin_status (
+          fill_level_percentage,
+          battery_level,
+          temperature,
+          humidity,
+          status,
+          last_updated
+        )
+      `)
+
+    if (binsError || !bins) {
+      return NextResponse.json(
+        { error: binsError?.message || 'Failed to fetch bins' },
+        { status: 400 }
+      )
+    }
+
     // Simulate IoT updates for all bins
-    const updatedBins = mockBins.map(bin => {
-      const randomChange = Math.floor(Math.random() * 10) - 3 // Random change between -3 and +6
-      bin.fill_level = Math.max(0, Math.min(100, bin.fill_level + randomChange))
-      bin.weight_kg = Math.max(0, bin.weight_kg + randomChange * 1.5)
-      bin.last_updated = new Date().toISOString()
-      
-      // Update status based on fill level
-      if (bin.fill_level >= 90) {
-        bin.status = 'critical'
-      } else if (bin.fill_level >= 75) {
-        bin.status = 'warning'
-      } else {
-        bin.status = 'normal'
-      }
-      
-      return bin
-    })
+    const updatedBins = await Promise.all(
+      bins.map(async (bin) => {
+        const randomChange = Math.floor(Math.random() * 10) - 3 // Random change between -3 and +6
+        const newFillLevel = Math.max(0, Math.min(100, (bin.bin_status?.fill_level_percentage || 0) + randomChange))
+        const newWeight = Math.max(0, (bin.current_weight_kg || 0) + randomChange * 1.5)
+        
+        // Update bin weight
+        await supabase
+          .from('bins')
+          .update({ current_weight_kg: newWeight })
+          .eq('id', bin.id)
+
+        // Update bin status
+        const newStatus = newFillLevel >= 90 ? 'full' : 
+                        newFillLevel >= 75 ? 'normal' : 'normal'
+        
+        await supabase
+          .from('bin_status')
+          .upsert({
+            bin_id: bin.id,
+            fill_level_percentage: newFillLevel,
+            battery_level: Math.max(0, (bin.bin_status?.battery_level || 100) - Math.random() * 2),
+            temperature: 20 + Math.random() * 15, // Random temperature between 20-35°C
+            humidity: 40 + Math.random() * 30, // Random humidity between 40-70%
+            last_updated: new Date().toISOString(),
+            status: newStatus
+          })
+
+        return {
+          ...bin,
+          current_weight_kg: newWeight,
+          bin_status: {
+            ...bin.bin_status,
+            fill_level_percentage: newFillLevel,
+            status: newStatus,
+            last_updated: new Date().toISOString()
+          }
+        }
+      })
+    )
 
     // Find bins that need collection
-    const binsNeedingCollection = updatedBins.filter(bin => bin.status === 'critical')
+    const binsNeedingCollection = updatedBins.filter(bin => bin.bin_status?.status === 'full')
 
     return NextResponse.json({
       success: true,
@@ -224,9 +348,8 @@ export async function PUT(request: NextRequest) {
       timestamp: new Date().toISOString()
     })
   } catch (error) {
-    console.error('IoT simulation error:', error)
     return NextResponse.json(
-      { error: 'Failed to run IoT simulation' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

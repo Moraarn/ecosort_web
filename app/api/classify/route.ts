@@ -1,85 +1,168 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@/lib/supabase/server'
+import { z } from 'zod'
+
+const classifySchema = z.object({
+  image_url: z.string().url().optional(),
+  waste_category_id: z.number(),
+  confidence_score: z.number().min(0).max(1),
+  qr_location_id: z.string().uuid().optional(),
+})
 
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData()
-    const image = formData.get('image') as File
-    const userId = formData.get('userId') as string
-    
-    if (!image) {
-      return NextResponse.json({ error: 'No image provided' }, { status: 400 })
+    const body = await request.json()
+    const { image_url, waste_category_id, confidence_score, qr_location_id } = classifySchema.parse(body)
+
+    const supabase = await createServerClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
     }
 
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
+    // Get waste category to determine points
+    const { data: category, error: categoryError } = await supabase
+      .from('waste_categories')
+      .select('points_value, name')
+      .eq('id', waste_category_id)
+      .single()
+
+    if (categoryError || !category) {
+      return NextResponse.json(
+        { error: 'Invalid waste category' },
+        { status: 400 }
+      )
     }
 
-    // Mock AI classification - replace with actual AI model
-    const wasteCategories = [
-      { name: "Plastic", color: "blue", icon: "🍶", points: 15, instructions: "Rinse and place in blue bin. Remove caps.", impact: "Takes 450+ years to decompose" },
-      { name: "Organic", color: "green", icon: "🍃", points: 10, instructions: "Place in green compost bin. No plastic bags.", impact: "Reduces methane emissions" },
-      { name: "Metal", color: "yellow", icon: "🥫", points: 20, instructions: "Rinse and place in yellow bin. Crush cans to save space.", impact: "Infinitely recyclable" },
-      { name: "Glass", color: "red", icon: "🍾", points: 18, instructions: "Rinse and place in red bin. Separate by color if possible.", impact: "100% recyclable without quality loss" },
-      { name: "Paper", color: "blue", icon: "📄", points: 12, instructions: "Keep dry and place in blue bin. No waxed paper.", impact: "Saves trees and reduces energy" },
-      { name: "E-waste", color: "purple", icon: "📱", points: 25, instructions: "Take to special e-waste collection point. Do not put in regular bins.", impact: "Contains hazardous materials" }
-    ]
+    // Create waste log
+    const { data: wasteLog, error: logError } = await supabase
+      .from('waste_logs')
+      .insert({
+        user_id: user.id,
+        image_url,
+        waste_category_id,
+        confidence_score,
+        qr_location_id,
+        points_earned: category.points_value,
+        verified: confidence_score >= 0.7,
+        disposal_timestamp: new Date().toISOString(),
+      })
+      .select(`
+        *,
+        waste_categories (
+          id,
+          name,
+          bin_color,
+          points_value,
+          disposal_instructions,
+          environmental_impact
+        )
+      `)
+      .single()
 
-    // Simulate AI processing
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    
-    const mockCategory = wasteCategories[Math.floor(Math.random() * wasteCategories.length)]
-    const confidence = 75 + Math.floor(Math.random() * 20)
-    
-    // In production, you would:
-    // 1. Upload image to Supabase Storage
-    // 2. Send to AI model (TensorFlow.js or Replicate)
-    // 3. Store classification in waste_logs table
-    
-    // Mock database insertion for waste_logs
-    const wasteLogId = `waste_${Date.now()}`
-    const mockWasteLog = {
-      id: wasteLogId,
-      user_id: userId,
-      image_url: `https://storage.supabase.co/waste-images/${image.name}`,
-      detected_category: mockCategory.name,
-      confidence_score: confidence / 100,
-      disposal_confirmed: false,
-      points_awarded: 0,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
-    
-    console.log('Waste log created:', mockWasteLog)
-    
-    const result = {
-      success: true,
-      wasteLogId: wasteLogId,
-      category: mockCategory,
-      confidence: confidence,
-      processingTime: 1.2,
-      imageUrl: mockWasteLog.image_url,
-      timestamp: new Date().toISOString(),
-      nextStep: "dispose"
+    if (logError || !wasteLog) {
+      return NextResponse.json(
+        { error: logError?.message || 'Failed to create waste log' },
+        { status: 400 }
+      )
     }
 
-    return NextResponse.json(result)
-  } catch (error) {
-    console.error('Classification error:', error)
+    // Award points using database function
+    if (wasteLog.verified) {
+      const { error: rewardError } = await supabase.rpc('award_disposal_points', {
+        user_uuid: user.id,
+        waste_log_uuid: wasteLog.id,
+        points: category.points_value,
+        description: `Points earned for ${category.name} disposal`
+      })
+
+      if (rewardError) {
+        console.error('Failed to award points:', rewardError)
+      }
+    }
+
     return NextResponse.json(
-      { error: 'Failed to classify image' },
+      { 
+        success: true,
+        waste_log: wasteLog,
+        points_earned: wasteLog.verified ? category.points_value : 0,
+        verified: wasteLog.verified,
+        category: wasteLog.waste_categories
+      },
+      { status: 201 }
+    )
+
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid input', details: error.errors },
+        { status: 400 }
+      )
+    }
+
+    return NextResponse.json(
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
 }
 
-export async function GET() {
-  return NextResponse.json({ 
-    message: 'AI Classification API',
-    endpoints: {
-      POST: '/api/classify - Classify waste image',
-      parameters: {
-        image: 'File (required) - Image file to classify'
-      }
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = await createServerClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
     }
-  })
+
+    const { searchParams } = new URL(request.url)
+    const limit = parseInt(searchParams.get('limit') || '10')
+    const offset = parseInt(searchParams.get('offset') || '0')
+
+    const { data: wasteLogs, error } = await supabase
+      .from('waste_logs')
+      .select(`
+        *,
+        waste_categories (
+          id,
+          name,
+          bin_color,
+          points_value
+        ),
+        qr_locations (
+          id,
+          location_name,
+          address
+        )
+      `)
+      .eq('user_id', user.id)
+      .order('disposal_timestamp', { ascending: false })
+      .range(offset, offset + limit - 1)
+
+    if (error) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 400 }
+      )
+    }
+
+    return NextResponse.json(
+      { waste_logs: wasteLogs },
+      { status: 200 }
+    )
+
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
 }

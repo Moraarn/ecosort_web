@@ -1,66 +1,139 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@/lib/supabase/server'
+import { z } from 'zod'
+
+const createRewardSchema = z.object({
+  points: z.number(),
+  transaction_type: z.enum(['earned', 'redeemed', 'bonus']).default('earned'),
+  description: z.string().optional(),
+  waste_log_id: z.string().uuid().optional(),
+})
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId')
+    const supabase = await createServerClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
     }
 
-    // Mock rewards data - replace with actual database queries
-    const mockRewards = [
-      { id: "1", userId: userId, points: 15, transactionType: "earned", description: "Plastic waste classification", timestamp: "2024-01-15T10:30:00Z" },
-      { id: "2", userId: userId, points: 10, transactionType: "earned", description: "Organic waste classification", timestamp: "2024-01-15T14:20:00Z" },
-      { id: "3", userId: userId, points: 18, transactionType: "earned", description: "Glass waste classification", timestamp: "2024-01-15T16:45:00Z" },
-      { id: "4", userId: userId, points: 20, transactionType: "earned", description: "Metal waste classification", timestamp: "2024-01-16T09:15:00Z" },
-      { id: "5", userId: userId, points: 25, transactionType: "earned", description: "E-waste classification", timestamp: "2024-01-16T11:30:00Z" }
-    ]
+    const { searchParams } = new URL(request.url)
+    const limit = parseInt(searchParams.get('limit') || '50')
+    const offset = parseInt(searchParams.get('offset') || '0')
 
-    const mockAchievements = [
-      { id: 1, name: "First Sort", description: "Successfully classify your first waste item", icon: "🌟", earned: true, earnedAt: "2024-01-15T10:30:00Z" },
-      { id: 2, name: "Eco Warrior", description: "Classify 50 waste items correctly", icon: "🏆", earned: true, earnedAt: "2024-01-20T15:20:00Z" },
-      { id: 3, name: "Week Streak", description: "Dispose waste for 7 consecutive days", icon: "🔥", earned: true, earnedAt: "2024-01-22T12:00:00Z" },
-      { id: 4, name: "Top Recycler", description: "Reach top 10 on leaderboard", icon: "👑", earned: false, earnedAt: null }
-    ]
+    // Get user's rewards
+    const { data: rewards, error: rewardsError } = await supabase
+      .from('rewards')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1)
 
-    const mockLeaderboard = [
-      { rank: 1, name: "Sarah Chen", points: 3450, trend: "up" },
-      { rank: 2, name: "Mike Johnson", points: 3120, trend: "up" },
-      { rank: 3, name: "Emma Davis", points: 2890, trend: "down" },
-      { rank: 4, name: "John Smith", points: 2670, trend: "up" },
-      { rank: 5, name: "Lisa Wang", points: 2450, trend: "same" },
-      { rank: 12, name: "You", points: 2450, trend: "up", isUser: true }
-    ]
+    if (rewardsError) {
+      return NextResponse.json(
+        { error: rewardsError.message },
+        { status: 400 }
+      )
+    }
 
-    // Calculate totals
-    const totalPoints = mockRewards.reduce((sum, reward) => sum + reward.points, 0)
-    const weeklyPoints = mockRewards
-      .filter(r => new Date(r.timestamp) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
-      .reduce((sum, reward) => sum + reward.points, 0)
-    const monthlyPoints = mockRewards
-      .filter(r => new Date(r.timestamp) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
-      .reduce((sum, reward) => sum + reward.points, 0)
+    // Get user's achievements
+    const { data: achievements, error: achievementsError } = await supabase
+      .from('user_achievements')
+      .select(`
+        *,
+        achievements (
+          id,
+          name,
+          description,
+          icon_url,
+          badge_type,
+          points_required
+        )
+      `)
+      .eq('user_id', user.id)
+      .order('earned_at', { ascending: false })
 
-    const result = {
+    if (achievementsError) {
+      return NextResponse.json(
+        { error: achievementsError.message },
+        { status: 400 }
+      )
+    }
+
+    // Get leaderboard
+    const { data: leaderboard, error: leaderboardError } = await supabase
+      .from('leaderboard')
+      .select(`
+        *,
+        profiles (
+          full_name
+        )
+      `)
+      .order('rank_position', { ascending: true })
+      .limit(50)
+
+    if (leaderboardError) {
+      return NextResponse.json(
+        { error: leaderboardError.message },
+        { status: 400 }
+      )
+    }
+
+    // Get user's profile for points
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('total_points')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError) {
+      return NextResponse.json(
+        { error: profileError.message },
+        { status: 400 }
+      )
+    }
+
+    // Calculate time-based points
+    const now = new Date()
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+
+    const weeklyPoints = rewards?.filter(r => new Date(r.created_at) > weekAgo)
+      .reduce((sum, reward) => sum + reward.points, 0) || 0
+
+    const monthlyPoints = rewards?.filter(r => new Date(r.created_at) > monthAgo)
+      .reduce((sum, reward) => sum + reward.points, 0) || 0
+
+    // Get user's rank from leaderboard
+    const userRank = leaderboard?.find(entry => entry.user_id === user.id)
+
+    return NextResponse.json({
       success: true,
       wallet: {
-        totalPoints,
+        totalPoints: profile?.total_points || 0,
         weeklyPoints,
         monthlyPoints,
-        totalDisposals: mockRewards.length
+        totalDisposals: rewards?.length || 0,
+        rank: userRank?.rank_position || null
       },
-      rewards: mockRewards,
-      achievements: mockAchievements,
-      leaderboard: mockLeaderboard
-    }
-
-    return NextResponse.json(result)
+      rewards,
+      achievements,
+      leaderboard: leaderboard?.map(entry => ({
+        rank: entry.rank_position,
+        name: entry.profiles?.full_name || 'Anonymous',
+        points: entry.total_points,
+        weeklyPoints: entry.weekly_points,
+        monthlyPoints: entry.monthly_points,
+        isUser: entry.user_id === user.id
+      })) || []
+    })
   } catch (error) {
-    console.error('Rewards API error:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch rewards data' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
@@ -68,33 +141,63 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, points, transactionType, description, wasteLogId } = await request.json()
+    const body = await request.json()
+    const rewardData = createRewardSchema.parse(body)
 
-    if (!userId || !points) {
-      return NextResponse.json({ error: 'User ID and points are required' }, { status: 400 })
+    const supabase = await createServerClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
     }
 
-    // In production, you would:
-    // 1. Insert reward record into database
-    // 2. Update user total points
-    // 3. Check for new achievements
-    // 4. Update leaderboard
+    // Create reward record
+    const { data: reward, error: rewardError } = await supabase
+      .from('rewards')
+      .insert({
+        user_id: user.id,
+        points: rewardData.points,
+        transaction_type: rewardData.transaction_type,
+        description: rewardData.description,
+        waste_log_id: rewardData.waste_log_id,
+      })
+      .select()
+      .single()
 
-    const reward = {
-      id: `REWARD-${Date.now()}`,
-      userId,
-      points,
-      transactionType: transactionType || "earned",
-      description: description || "Points awarded",
-      wasteLogId,
-      timestamp: new Date().toISOString()
+    if (rewardError || !reward) {
+      return NextResponse.json(
+        { error: rewardError?.message || 'Failed to create reward' },
+        { status: 400 }
+      )
     }
 
-    return NextResponse.json({ success: true, reward })
+    // Update user points using database function
+    const { error: pointsError } = await supabase.rpc('update_user_points', {
+      user_uuid: user.id
+    })
+
+    if (pointsError) {
+      console.error('Failed to update user points:', pointsError)
+    }
+
+    return NextResponse.json({
+      success: true,
+      reward,
+      message: 'Reward created successfully'
+    })
   } catch (error) {
-    console.error('Reward creation error:', error)
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid input', details: error.errors },
+        { status: 400 }
+      )
+    }
+
     return NextResponse.json(
-      { error: 'Failed to create reward' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

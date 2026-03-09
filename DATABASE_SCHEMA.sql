@@ -328,3 +328,19 @@ CREATE TRIGGER trigger_update_leaderboard
   AFTER INSERT ON rewards
   FOR EACH ROW
   EXECUTE FUNCTION update_leaderboard();
+
+-- Chatbot interaction logs
+CREATE TABLE chatbot_logs (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id),
+  user_message TEXT NOT NULL,
+  bot_response TEXT NOT NULL,
+  language TEXT DEFAULT 'en',
+  context TEXT,
+  session_id TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Index for performance
+CREATE INDEX idx_chatbot_logs_user_id ON chatbot_logs(user_id);
+CREATE INDEX idx_chatbot_logs_created_at ON chatbot_logs(created_at);

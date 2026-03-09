@@ -69,7 +69,7 @@ export default function Classify() {
 
   const handleProceedToScan = () => {
     // Store result and redirect to scan page
-    router.push("/scan")
+    router.push("recycling-assistant")
   }
 
   return (

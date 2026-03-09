@@ -105,7 +105,7 @@ export default function Dispose() {
       
       // Mock API call to log disposal
       try {
-        const response = await fetch("/api/scan", {
+        const response = await fetch("/apirecycling-assistant", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

@@ -17,7 +17,7 @@
 - ✅ Points awarded based on category
 
 ### 3. **QR Code Scanning**
-- ✅ Scan page (`/scan`)
+- ✅ Scan page (`recycling-assistant`)
 - ✅ Camera scanning interface
 - ✅ File upload option
 - ✅ Mock QR validation
@@ -50,7 +50,7 @@
 
 ### 7. **API Endpoints**
 - ✅ Classification API (`/api/classify`)
-- ✅ QR Scan API (`/api/scan`)
+- ✅ QR Scan API (`/apirecycling-assistant`)
 - ✅ Rewards API (`/api/rewards`)
 - ✅ Admin Analytics API (`/api/admin/analytics`)
 
@@ -156,7 +156,7 @@ Visit `http://localhost:3000`
 curl -X POST http://localhost:3000/api/classify -F "image=@test.jpg"
 
 # Test QR scan
-curl -X POST http://localhost:3000/api/scan -H "Content-Type: application/json" -d '{"qrCode":"ECOSORT-BIN-001","wasteType":"Plastic"}'
+curl -X POST http://localhost:3000/apirecycling-assistant -H "Content-Type: application/json" -d '{"qrCode":"ECOSORT-BIN-001","wasteType":"Plastic"}'
 
 # Test rewards
 curl http://localhost:3000/api/rewards?userId=123

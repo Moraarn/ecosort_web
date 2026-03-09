@@ -271,7 +271,7 @@ CREATE TABLE bins (
 
 ### **API Endpoints:**
 - ✅ `/api/classify` - AI waste classification
-- ✅ `/api/scan` - QR code processing & rewards
+- ✅ `/apirecycling-assistant` - QR code processing & rewards
 - ✅ `/api/rewards` - Wallet & rewards data
 - ✅ `/api/bins` - Bin management & IoT
 - ✅ `/api/iot/simulation` - Real-time IoT simulation
