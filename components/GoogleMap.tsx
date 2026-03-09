@@ -90,28 +90,33 @@ export default function GoogleMap({ markers, onMarkerClick, onMapClick, center =
       })
     }
 
-    // Load Google Maps script
-    const loadGoogleMapsScript = () => {
-      // Check if Google Maps API key is available
-      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-      
-      if (!apiKey) {
-        console.warn('Google Maps API key not configured. Map functionality will be limited.')
-        // Show a fallback message
-        if (mapRef.current) {
-          mapRef.current.innerHTML = `
-            <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f3f4f6; border-radius: 8px; text-align: center; padding: 20px;">
-              <div>
-                <div style="font-size: 48px; margin-bottom: 16px;">🗺️</div>
-                <h3 style="margin: 0 0 8px 0; color: #374151;">Map Unavailable</h3>
-                <p style="margin: 0; color: #6b7280; font-size: 14px;">
-                  Google Maps API key not configured.<br>
-                  Please set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in your environment variables.
-                </p>
-              </div>
+    // Check API key availability immediately
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+    
+    if (!apiKey) {
+      console.warn('Google Maps API key not configured. Map functionality will be limited.')
+      // Show fallback immediately
+      if (mapRef.current) {
+        mapRef.current.innerHTML = `
+          <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f3f4f6; border-radius: 8px; text-align: center; padding: 20px;">
+            <div>
+              <div style="font-size: 48px; margin-bottom: 16px;">🗺️</div>
+              <h3 style="margin: 0 0 8px 0; color: #374151;">Map Unavailable</h3>
+              <p style="margin: 0; color: #6b7280; font-size: 14px;">
+                Google Maps API key not configured.<br>
+                Please set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in your environment variables.
+              </p>
             </div>
-          `
-        }
+          </div>
+        `
+      }
+      return // Exit early, don't attempt to load Google Maps
+    }
+
+    const loadGoogleMapsScript = () => {
+      // Double-check API key before loading
+      if (!apiKey) {
+        console.warn('Google Maps API key not configured. Skipping script load.')
         return
       }
 
