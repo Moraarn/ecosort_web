@@ -2,20 +2,6 @@
 
 import { useEffect, useRef } from "react"
 
-// Type declarations for Google Maps
-declare global {
-  interface Window {
-    google: {
-      maps: {
-        Map: new (element: HTMLElement, options: any) => any
-        Marker: new (options?: any) => any
-        InfoWindow: new (options?: any) => any
-        Size: new (width: number, height: number) => any
-      }
-    }
-  }
-}
-
 interface MapMarker {
   id: number
   name: string
@@ -106,7 +92,7 @@ export default function GoogleMap({ markers, onMarkerClick, onMapClick }: Google
     // Load Google Maps script
     const loadGoogleMapsScript = () => {
       const script = document.createElement("script")
-      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyCg9nrprZjMhLasAxyXucyH61DcspTjVuA&libraries=places`
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`
       script.async = true
       script.defer = true
       script.onload = initMap
