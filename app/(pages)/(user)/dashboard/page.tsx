@@ -9,36 +9,58 @@ export default function Dashboard() {
   const smartBins = [
     {
       id: 1,
-      name: "Central Park Bin",
+      name: "Nairobi Central Bin",
       status: "Active",
       progress: 75,
       wasteType: "Mixed",
       lastSync: "2 mins ago",
-      location: "Central Park",
-      lat: 40.7829,
-      lng: -73.9654
+      location: "Nairobi CBD",
+      lat: -1.2921,
+      lng: 36.8219
     },
     {
       id: 2,
-      name: "Shopping Mall Bin",
-      status: "Active", 
+      name: "Kampala Mall Bin", 
+      status: "Active",
       progress: 45,
       wasteType: "Plastic",
       lastSync: "5 mins ago",
-      location: "City Mall",
-      lat: 40.7580,
-      lng: -73.9855
+      location: "Kampala Shopping Mall",
+      lat: 0.3476,
+      lng: 32.5825
     },
     {
       id: 3,
-      name: "School Campus Bin",
+      name: "Entebbe School Bin",
       status: "Active",
       progress: 90,
       wasteType: "Paper",
       lastSync: "1 min ago",
-      location: "Greenwood School",
-      lat: 40.7489,
-      lng: -73.9680
+      location: "Entebbe International School",
+      lat: 0.0531,
+      lng: 32.4638
+    },
+    {
+      id: 4,
+      name: "Kigali Market Bin",
+      status: "Active", 
+      progress: 60,
+      wasteType: "Organic",
+      lastSync: "3 mins ago",
+      location: "Kigali Central Market",
+      lat: -1.9441,
+      lng: 30.0619
+    },
+    {
+      id: 5,
+      name: "Dar es Salaam Port Bin",
+      status: "Active",
+      progress: 85,
+      wasteType: "Metal",
+      lastSync: "4 mins ago", 
+      location: "Dar es Salaam Port",
+      lat: -6.8107,
+      lng: 39.2983
     }
   ]
 
