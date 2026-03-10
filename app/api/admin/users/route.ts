@@ -29,8 +29,8 @@ export async function GET(request: NextRequest) {
           .eq('id', authUser.id)
           .single()
         
-        const typedProfile = profile as Profile | null
-        if (typedProfile && typedProfile.role === 'admin') {
+        // Use type assertion to bypass TypeScript inference
+        if (profile && (profile as any).role === 'admin') {
           user = authUser
           isAdmin = true
           console.log('Supabase admin authentication successful')
@@ -144,8 +144,8 @@ export async function PUT(request: NextRequest) {
           .eq('id', authUser.id)
           .single()
         
-        const typedProfile = profile as Profile | null
-        if (typedProfile && typedProfile.role === 'admin') {
+        // Use type assertion to bypass TypeScript inference
+        if (profile && (profile as any).role === 'admin') {
           isAdmin = true
         }
       }
