@@ -187,7 +187,7 @@ export default function AdminSidebar({ children }: AdminSidebarProps) {
               {isMobile && (
                 <button
                   onClick={() => setIsMobileMenuOpen(true)}
-                  className="mobile-menu-toggle p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="mobile-menu-toggle p-2 rounded-lg hover:bg-gray-100 transition-colors lg:hidden"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
