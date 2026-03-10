@@ -27,9 +27,10 @@ export async function GET(request: NextRequest) {
           .from('profiles')
           .select('role')
           .eq('id', authUser.id)
-          .single() as { data: Profile | null, error: any }
+          .single()
         
-        if (profile && profile.role === 'admin') {
+        const typedProfile = profile as Profile | null
+        if (typedProfile && typedProfile.role === 'admin') {
           user = authUser
           isAdmin = true
           console.log('Supabase admin authentication successful')
@@ -141,9 +142,10 @@ export async function PUT(request: NextRequest) {
           .from('profiles')
           .select('role')
           .eq('id', authUser.id)
-          .single() as { data: Profile | null, error: any }
+          .single()
         
-        if (profile && profile.role === 'admin') {
+        const typedProfile = profile as Profile | null
+        if (typedProfile && typedProfile.role === 'admin') {
           isAdmin = true
         }
       }
