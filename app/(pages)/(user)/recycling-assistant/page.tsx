@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from 'react'
 import { WasteClassifier } from '@/lib/ai/classifier'
 import { ClassificationResult, ChatMessage, SUPPORTED_LANGUAGES, VoiceSettings } from '@/types/waste'
 import { translateText, getVoiceSettings, translations } from '@/lib/translations'
-import { getRandomAnimation } from '@/lib/animations'
 import DashboardLayout from '@/components/DashboardLayout'
 
 // Import components
@@ -14,7 +13,6 @@ import EducationalContent from '@/components/recycling/EducationalContent'
 import BinGuide from '@/components/recycling/BinGuide'
 import NearbyBins from '@/components/recycling/NearbyBins'
 import Chatbot from '@/components/recycling/Chatbot'
-import AnimationOverlay from '@/components/recycling/AnimationOverlay'
 
 export default function RecyclingAssistant() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
@@ -32,10 +30,6 @@ export default function RecyclingAssistant() {
     pitch: 1,
     volume: 1
   })
-  
-  // Animation state
-  const [showAnimation, setShowAnimation] = useState(false)
-  const [animationUrl, setAnimationUrl] = useState('')
   
   const fileInputRef = useRef<HTMLInputElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
@@ -72,16 +66,6 @@ export default function RecyclingAssistant() {
     try {
       const result = await classifier.classifyImage(selectedImage)
       setClassification(result)
-      
-      // Show celebration animation
-      const animation = getRandomAnimation('trashThrowing')
-      setAnimationUrl(animation)
-      setShowAnimation(true)
-      
-      // Hide animation after 3 seconds
-      setTimeout(() => {
-        setShowAnimation(false)
-      }, 3000)
       
       // Add assistant message with classification result
       const categoryName = result.category?.name || 'Unknown Waste'
@@ -201,7 +185,6 @@ export default function RecyclingAssistant() {
     setClassification(null)
     setMessages([])
     setInputMessage('')
-    setShowAnimation(false)
     stopSpeaking()
   }
 
@@ -229,11 +212,6 @@ export default function RecyclingAssistant() {
   return (
     <DashboardLayout>
       <div className="container mx-auto p-6 max-w-7xl">
-        {/* Animation Overlay */}
-        <AnimationOverlay 
-          showAnimation={showAnimation} 
-          selectedLanguage={selectedLanguage} 
-        />
 
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-green-800 mb-2">
