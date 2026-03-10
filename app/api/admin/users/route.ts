@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
           .from('profiles')
           .select('role')
           .eq('id', authUser.id)
-          .single()
+          .single() as { data: { role: string } | null, error: any }
         
         if (profile && profile.role === 'admin') {
           user = authUser
@@ -137,7 +137,7 @@ export async function PUT(request: NextRequest) {
           .from('profiles')
           .select('role')
           .eq('id', authUser.id)
-          .single()
+          .single() as { data: { role: string } | null, error: any }
         
         if (profile && profile.role === 'admin') {
           isAdmin = true
