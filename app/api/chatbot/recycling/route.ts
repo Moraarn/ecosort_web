@@ -77,9 +77,9 @@ export async function POST(request: NextRequest) {
     // Find answer based on keywords
     const result = findAnswer(message, language)
     
-    // Log the interaction for analytics
-    const supabase = await createServerClient()
+    // Log the interaction for analytics (only if Supabase is available)
     try {
+      const supabase = await createServerClient()
       await (supabase
         .from('chatbot_logs') as any)
         .insert({
@@ -90,8 +90,8 @@ export async function POST(request: NextRequest) {
           created_at: new Date().toISOString()
         })
     } catch (dbError) {
-      // Log error but don't fail the response
-      console.error('Failed to log chatbot interaction:', dbError)
+      // Log error but don't fail the response - chatbot works without database
+      console.log('Chatbot logging skipped (database unavailable):', (dbError as Error).message)
     }
 
     return NextResponse.json({

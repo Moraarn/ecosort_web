@@ -130,7 +130,11 @@ export default function Signup() {
                     onChange={handleChange}
                     className="sr-only"
                   />
-                  <div className={`text-center ${formData.role === "citizen" ? "border-green-500 bg-green-50" : "border-gray-300"}`}>
+                  <div className={`text-center border-2 rounded-lg p-3 transition-all ${
+                    formData.role === "citizen" 
+                      ? "border-green-500 bg-green-50" 
+                      : "border-gray-300 bg-white"
+                  }`}>
                     <div className="text-2xl mb-1">👤</div>
                     <div className="font-medium text-gray-900">Citizen</div>
                     <div className="text-xs text-gray-500">Join as a regular user</div>
@@ -146,7 +150,11 @@ export default function Signup() {
                     onChange={handleChange}
                     className="sr-only"
                   />
-                  <div className={`text-center ${formData.role === "admin" ? "border-green-500 bg-green-50" : "border-gray-300"}`}>
+                  <div className={`text-center border-2 rounded-lg p-3 transition-all ${
+                    formData.role === "admin" 
+                      ? "border-green-500 bg-green-50" 
+                      : "border-gray-300 bg-white"
+                  }`}>
                     <div className="text-2xl mb-1">👨‍💼</div>
                     <div className="font-medium text-gray-900">Admin</div>
                     <div className="text-xs text-gray-500">Manage waste system</div>

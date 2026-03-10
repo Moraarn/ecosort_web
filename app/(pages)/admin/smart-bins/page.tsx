@@ -58,6 +58,9 @@ export default function AdminSmartBins() {
         setSmartBins(prev => [data.bin, ...prev])
         setShowAddBinModal(false)
         alert('Smart bin added successfully!')
+        
+        // Refetch bins to ensure we have the latest data from database
+        await fetchSmartBins()
       } else {
         alert(`Failed to add smart bin: ${data.error}`)
       }

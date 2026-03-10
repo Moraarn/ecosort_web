@@ -65,7 +65,10 @@ export async function POST(request: NextRequest) {
       console.log('Supabase signin failed, using fallback auth:', supabaseError)
       
       // Use fallback authentication
+      console.log('FallbackAuth: Attempting signin for email:', email)
       const { user, sessionToken } = await FallbackAuth.signIn(email, password)
+      console.log('FallbackAuth: Signin successful, session token:', sessionToken.substring(0, 10) + '...')
+      console.log('FallbackAuth: User role:', user.role)
 
       return NextResponse.json(
         {

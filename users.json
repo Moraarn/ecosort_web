@@ -1,0 +1,40 @@
+{
+  "wmmlfp1ro9mmkelcn3": {
+    "id": "wmmlfp1ro9mmkelcn3",
+    "email": "admin@ecosort.com",
+    "fullName": "Admin User",
+    "role": "admin",
+    "totalPoints": 0,
+    "createdAt": "2026-03-10T09:24:15.807Z",
+    "password": "admin123"
+  },
+  "vbrcf1c4ppmmkelcn3": {
+    "id": "vbrcf1c4ppmmkelcn3",
+    "email": "citizen@ecosort.com",
+    "fullName": "Citizen User",
+    "role": "citizen",
+    "totalPoints": 0,
+    "createdAt": "2026-03-10T09:24:15.807Z",
+    "password": "citizen123"
+  },
+  "talc04prhqrmmkf1ga6": {
+    "id": "talc04prhqrmmkf1ga6",
+    "email": "tary@mailinator.com",
+    "fullName": "Jena Dickson",
+    "phone": "+1 (134) 141-6813",
+    "role": "admin",
+    "totalPoints": 0,
+    "createdAt": "2026-03-10T09:36:47.022Z",
+    "password": "Pa$$w0rd!"
+  },
+  "k9fb3wtnd5mmkf5325": {
+    "id": "k9fb3wtnd5mmkf5325",
+    "email": "jofutywej@mailinator.com",
+    "fullName": "Suki Holt",
+    "phone": "+1 (637) 512-3879",
+    "role": "citizen",
+    "totalPoints": 0,
+    "createdAt": "2026-03-10T09:39:36.509Z",
+    "password": "Pa$$w0rd!"
+  }
+}

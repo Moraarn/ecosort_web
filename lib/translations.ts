@@ -156,8 +156,23 @@ export function translateText(text: string, targetLanguage: string): string {
 export function getVoiceSettings(language: string): SpeechSynthesisUtterance {
   const utterance = new SpeechSynthesisUtterance()
   utterance.lang = language === 'sw' ? 'sw-TZ' : 'en-US'
-  utterance.rate = 1
+  utterance.rate = 0.9 // Slightly slower for better clarity
   utterance.pitch = 1
-  utterance.volume = 1
+  utterance.volume = 0.8 // Slightly lower volume
+  
+  // Wait for voices to be loaded before setting voice
+  if ('speechSynthesis' in window) {
+    const voices = speechSynthesis.getVoices()
+    const preferredVoice = voices.find(voice => 
+      language === 'sw' ? 
+        voice.lang.includes('sw') || voice.lang.includes('tz') :
+        voice.lang.includes('en') || voice.lang.includes('US')
+    )
+    
+    if (preferredVoice) {
+      utterance.voice = preferredVoice
+    }
+  }
+  
   return utterance
 }

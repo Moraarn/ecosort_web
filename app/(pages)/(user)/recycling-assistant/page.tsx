@@ -2,8 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { WasteClassifier } from '@/lib/ai/classifier'
-import { ClassificationResult, ChatMessage, SUPPORTED_LANGUAGES, VoiceSettings } from '@/types/waste'
+import { type ClassificationResult, ChatMessage, SUPPORTED_LANGUAGES, VoiceSettings } from '@/types/waste'
 import { translateText, getVoiceSettings, translations } from '@/lib/translations'
+import { uploadImage } from '@/lib/storage'
 import DashboardLayout from '@/components/DashboardLayout'
 
 // Import components
@@ -13,6 +14,7 @@ import EducationalContent from '@/components/recycling/EducationalContent'
 import BinGuide from '@/components/recycling/BinGuide'
 import NearbyBins from '@/components/recycling/NearbyBins'
 import Chatbot from '@/components/recycling/Chatbot'
+import ClassificationHistory from '@/components/recycling/ClassificationHistory'
 
 export default function RecyclingAssistant() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
@@ -67,6 +69,19 @@ export default function RecyclingAssistant() {
       const result = await classifier.classifyImage(selectedImage)
       setClassification(result)
       
+      // Upload image to Supabase storage
+      const imageUrl = await uploadImage(selectedImage, 'current-user') // You'll need to get actual user ID
+      
+      // Save classification to database
+      await fetch('/api/user/classification-history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image_url: imageUrl,
+          classification_result: result
+        })
+      })
+      
       // Add assistant message with classification result
       const categoryName = result.category?.name || 'Unknown Waste'
       const instructions = translateText(result.category?.disposal_instructions || 'Follow standard waste disposal guidelines', selectedLanguage)
@@ -114,12 +129,40 @@ export default function RecyclingAssistant() {
 
   const speakText = (text: string) => {
     if ('speechSynthesis' in window) {
+      // Cancel any ongoing speech
+      speechSynthesis.cancel()
+      
       const utterance = getVoiceSettings(selectedLanguage)
       utterance.text = text
       utterance.rate = voiceSettings.rate
       utterance.pitch = voiceSettings.pitch
       utterance.volume = voiceSettings.volume
-      speechSynthesis.speak(utterance)
+      
+      // Add event listeners for better error handling
+      utterance.onstart = () => {
+        console.log('Speech started')
+      }
+      
+      utterance.onend = () => {
+        console.log('Speech ended')
+      }
+      
+      utterance.onerror = (event) => {
+        console.error('Speech synthesis error:', event)
+      }
+      
+      // Make sure voices are loaded
+      if (speechSynthesis.getVoices().length === 0) {
+        speechSynthesis.addEventListener('voiceschanged', () => {
+          speechSynthesis.speak(utterance)
+        }, { once: true })
+        // Trigger voiceschanged event
+        speechSynthesis.getVoices()
+      } else {
+        speechSynthesis.speak(utterance)
+      }
+    } else {
+      console.warn('Speech synthesis not supported in this browser')
     }
   }
 
@@ -256,7 +299,7 @@ export default function RecyclingAssistant() {
           </div>
         </div>
 
-        {/* Full Width Section - Educational Content, Nearby Bins, and Bin Guide */}
+        {/* Full Width Section - Educational Content, Nearby Bins, Bin Guide, and Classification History */}
         {classification && (
           <div className="mt-6 space-y-6">
             {/* Horizontal Layout for Educational Content and Nearby Bins */}
@@ -273,6 +316,15 @@ export default function RecyclingAssistant() {
             
             {/* Full Width Bin Guide */}
             <BinGuide selectedLanguage={selectedLanguage} />
+            
+            {/* Classification History */}
+            <ClassificationHistory 
+              selectedLanguage={selectedLanguage}
+              onClassificationSelect={(classification) => {
+                // Handle classification selection if needed
+                console.log('Selected classification:', classification)
+              }}
+            />
           </div>
         )}
       </div>

@@ -3,10 +3,20 @@
 import DashboardLayout from "@/components/DashboardLayout"
 import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
+import { useRouter } from "next/navigation"
 
 export default function Profile() {
   const [activeTab, setActiveTab] = useState("overview")
-  const { user, isAuthenticated, loading } = useAuth()
+  const { user, isAuthenticated, loading, logout } = useAuth()
+  const router = useRouter()
+
+  const handleLogout = () => {
+    // Clear authentication using auth context
+    logout()
+    
+    // Redirect to homepage
+    router.push('/')
+  }
 
   // Show loading state
   if (loading) {
@@ -124,6 +134,12 @@ export default function Profile() {
 
               <button className="w-full mt-6 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors">
                 Edit Profile
+              </button>
+              <button
+                onClick={handleLogout}
+                className="w-full mt-3 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Sign Out
               </button>
             </div>
           </div>

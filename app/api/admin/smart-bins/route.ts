@@ -6,53 +6,53 @@ import { z } from 'zod'
 const fallbackBins: any[] = [
   {
     id: 1,
-    name: "Central Park Bin",
+    name: "Nairobi Central Bin",
     status: "Active",
     progress: 75,
     wasteType: "Mixed",
     lastSync: "2 mins ago",
-    location: "Central Park",
-    lat: 40.7829,
-    lng: -73.9654,
+    location: "Nairobi Central, Kenya",
+    lat: -1.2921,
+    lng: 36.8219,
     alerts: 0,
     created_at: new Date().toISOString()
   },
   {
     id: 2,
-    name: "Downtown Plaza Bin",
+    name: "Kampala Plaza Bin",
     status: "Active",
     progress: 45,
     wasteType: "Plastic",
     lastSync: "5 mins ago",
-    location: "Downtown Plaza",
-    lat: 40.7128,
-    lng: -74.0060,
+    location: "Kampala Plaza, Uganda",
+    lat: 0.3476,
+    lng: 32.5825,
     alerts: 0,
     created_at: new Date().toISOString()
   },
   {
     id: 3,
-    name: "Airport Terminal Bin",
+    name: "Mombasa Port Bin",
     status: "Warning",
     progress: 92,
     wasteType: "Mixed",
     lastSync: "1 min ago",
-    location: "Airport Terminal",
-    lat: 40.6413,
-    lng: -73.7781,
+    location: "Mombasa Port, Kenya",
+    lat: -4.0435,
+    lng: 39.6682,
     alerts: 2,
     created_at: new Date().toISOString()
   },
   {
     id: 4,
-    name: "University Campus Bin",
+    name: "Entebbe Airport Bin",
     status: "Active",
     progress: 30,
     wasteType: "Paper",
     lastSync: "3 mins ago",
-    location: "University Campus",
-    lat: 40.8075,
-    lng: -73.9626,
+    location: "Entebbe Airport, Uganda",
+    lat: 0.0434,
+    lng: 32.4435,
     alerts: 0,
     created_at: new Date().toISOString()
   }
@@ -79,9 +79,11 @@ export async function GET(request: NextRequest) {
         .order('created_at', { ascending: false })
 
       if (error) {
+        console.error('Supabase smart bins fetch error:', error)
         throw error
       }
 
+      console.log('Successfully fetched smart bins from Supabase:', data?.length || 0)
       return NextResponse.json({ bins: data }, { status: 200 })
     } catch (supabaseError) {
       console.log('Supabase smart bins fetch failed, using fallback:', supabaseError)
@@ -90,6 +92,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ bins: fallbackBins }, { status: 200 })
     }
   } catch (error) {
+    console.error('Smart bins GET error:', error)
     return NextResponse.json(
       { error: 'Failed to fetch smart bins' },
       { status: 500 }
@@ -101,6 +104,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+    console.log('Creating smart bin with data:', body)
+    
     const validatedData = binSchema.parse(body)
 
     const newBin = {
@@ -111,6 +116,8 @@ export async function POST(request: NextRequest) {
       lastSync: "Just now",
       created_at: new Date().toISOString()
     }
+
+    console.log('Processed new bin data:', newBin)
 
     // Try Supabase first
     try {
@@ -123,9 +130,11 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (error) {
+        console.error('Supabase smart bin creation error:', error)
         throw error
       }
 
+      console.log('Successfully created smart bin in Supabase:', data)
       return NextResponse.json({ bin: data }, { status: 201 })
     } catch (supabaseError) {
       console.log('Supabase smart bin creation failed, using fallback:', supabaseError)
@@ -137,9 +146,11 @@ export async function POST(request: NextRequest) {
       }
       fallbackBins.push(fallbackBin)
       
+      console.log('Created smart bin in fallback storage:', fallbackBin)
       return NextResponse.json({ bin: fallbackBin }, { status: 201 })
     }
   } catch (error) {
+    console.error('Smart bins POST error:', error)
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid input', details: error.errors },

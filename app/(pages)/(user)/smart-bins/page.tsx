@@ -263,13 +263,7 @@ export default function SmartBins() {
                 <span className="hidden sm:inline">{isRefreshing ? "Refreshing..." : "Refresh Data"}</span>
                 <span className="sm:hidden">{isRefreshing ? "..." : "Refresh"}</span>
               </button>
-              <button onClick={handleAddBin} className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors text-sm">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                <span className="hidden sm:inline">Add New Bin</span>
-                <span className="sm:hidden">Add Bin</span>
-              </button>
+              
             </div>
           </div>
         </div>
@@ -374,113 +368,7 @@ export default function SmartBins() {
         )}
       </div>
 
-      {/* Add Bin Modal */}
-      {showAddBinModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col">
-            <div className="p-4 sm:p-6 border-b border-gray-200 flex-shrink-0">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Add New Smart Bin</h2>
-              <p className="text-gray-600 text-sm mt-1">Enter the details for the new smart bin</p>
-            </div>
-            
-            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Bin Name *
-                </label>
-                <input
-                  type="text"
-                  value={newBin.name}
-                  onChange={(e) => setNewBin({ ...newBin, name: e.target.value })}
-                  className="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
-                  placeholder="e.g., Downtown Plaza Bin"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Location *
-                </label>
-                <input
-                  type="text"
-                  value={newBin.location}
-                  onChange={(e) => setNewBin({ ...newBin, location: e.target.value })}
-                  className="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
-                  placeholder="e.g., Downtown Plaza"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Waste Type
-                </label>
-                <select
-                  value={newBin.wasteType}
-                  onChange={(e) => setNewBin({ ...newBin, wasteType: e.target.value })}
-                  className="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
-                >
-                  <option value="Mixed">Mixed</option>
-                  <option value="Plastic">Plastic</option>
-                  <option value="Paper">Paper</option>
-                  <option value="Organic">Organic</option>
-                  <option value="Glass">Glass</option>
-                  <option value="Metal">Metal</option>
-                  <option value="Medical">Medical</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Location * - Click on the map to select location
-                </label>
-                <div className="border border-gray-300 rounded-lg overflow-hidden h-48 sm:h-64">
-                  <GoogleMap 
-                    markers={newBin.selectedLocation ? [{
-                      id: 999,
-                      name: "New Bin Location",
-                      lat: newBin.selectedLocation.lat,
-                      lng: newBin.selectedLocation.lng,
-                      status: "Pending",
-                      progress: 0,
-                      wasteType: newBin.wasteType
-                    }] : []}
-                    onMarkerClick={() => {}}
-                    onMapClick={handleLocationSelect}
-                  />
-                </div>
-                {newBin.selectedLocation && (
-                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg text-xs sm:text-sm">
-                    <span className="text-green-700 font-medium">Selected Location:</span>
-                    <span className="text-gray-600 ml-2 break-all">
-                      {newBin.selectedLocation.lat.toFixed(6)}, {newBin.selectedLocation.lng.toFixed(6)}
-                    </span>
-                  </div>
-                )}
-                {!newBin.selectedLocation && (
-                  <p className="mt-2 text-xs sm:text-sm text-gray-500">
-                    Click anywhere on the map to set the bin location
-                  </p>
-                )}
-              </div>
-            </div>
-            
-            <div className="p-4 sm:p-6 border-t border-gray-200 flex justify-end space-x-3 flex-shrink-0">
-              <button
-                onClick={handleCloseModal}
-                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors text-sm"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveBin}
-                className="px-4 py-2 bg-primary hover:bg-gray-900 text-white rounded-lg font-medium transition-colors text-sm"
-              >
-                Add Bin
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      
     </DashboardLayout>
   )
 }

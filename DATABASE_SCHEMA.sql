@@ -45,6 +45,26 @@ CREATE TABLE qr_locations (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Smart Bins table
+CREATE TABLE smart_bins (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  location TEXT NOT NULL,
+  waste_type TEXT NOT NULL CHECK (waste_type IN ('Mixed', 'Plastic', 'Paper', 'Organic', 'Metal', 'Glass', 'E-waste')),
+  status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Warning', 'Offline')),
+  progress INTEGER DEFAULT 0 CHECK (progress >= 0 AND progress <= 100),
+  last_sync TEXT,
+  lat DECIMAL(10, 8) NOT NULL,
+  lng DECIMAL(11, 8) NOT NULL,
+  alerts INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes for smart_bins table
+CREATE INDEX idx_smart_bins_location ON smart_bins(lat, lng);
+CREATE INDEX idx_smart_bins_status ON smart_bins(status);
+CREATE INDEX idx_smart_bins_created_at ON smart_bins(created_at);
+
 -- Bins (physical containers)
 CREATE TABLE bins (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,

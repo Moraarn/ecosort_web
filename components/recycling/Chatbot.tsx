@@ -40,12 +40,40 @@ export default function Chatbot({
 
   const speakText = (text: string) => {
     if ('speechSynthesis' in window) {
+      // Cancel any ongoing speech
+      speechSynthesis.cancel()
+      
       const utterance = getVoiceSettings(selectedLanguage)
       utterance.text = text
       utterance.rate = voiceSettings.rate
       utterance.pitch = voiceSettings.pitch
       utterance.volume = voiceSettings.volume
-      speechSynthesis.speak(utterance)
+      
+      // Add event listeners for better error handling
+      utterance.onstart = () => {
+        console.log('Speech started')
+      }
+      
+      utterance.onend = () => {
+        console.log('Speech ended')
+      }
+      
+      utterance.onerror = (event) => {
+        console.error('Speech synthesis error:', event)
+      }
+      
+      // Make sure voices are loaded
+      if (speechSynthesis.getVoices().length === 0) {
+        speechSynthesis.addEventListener('voiceschanged', () => {
+          speechSynthesis.speak(utterance)
+        }, { once: true })
+        // Trigger voiceschanged event
+        speechSynthesis.getVoices()
+      } else {
+        speechSynthesis.speak(utterance)
+      }
+    } else {
+      console.warn('Speech synthesis not supported in this browser')
     }
   }
 

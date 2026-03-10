@@ -19,7 +19,7 @@ interface GoogleMapProps {
   center?: { lat: number; lng: number }
 }
 
-export default function GoogleMap({ markers, onMarkerClick, onMapClick, center = { lat: 40.7128, lng: -74.0060 } }: GoogleMapProps) {
+export default function GoogleMap({ markers, onMarkerClick, onMapClick, center = { lat: -1.2921, lng: 36.8219 } }: GoogleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])

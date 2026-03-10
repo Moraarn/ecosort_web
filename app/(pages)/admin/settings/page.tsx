@@ -2,9 +2,23 @@
 
 import { useState } from "react"
 import AdminSidebar from "@/components/admin/AdminSidebar"
+import { useRouter } from "next/navigation"
 
 export default function AdminSettings() {
   const [activeSettingsTab, setActiveSettingsTab] = useState("system")
+  const router = useRouter()
+
+  const handleLogout = () => {
+    // Clear authentication data from localStorage
+    localStorage.removeItem('auth_token')
+    localStorage.removeItem('user_role')
+    localStorage.removeItem('user_email')
+    
+    // Redirect to sign-in page
+    router.push('/')
+  }
+
+  
 
   const settings = {
     system: {
@@ -181,6 +195,14 @@ export default function AdminSettings() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
+                <div className="pt-4 border-t border-gray-200">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"
+                  >
+                    Sign Out
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -287,9 +309,17 @@ export default function AdminSettings() {
   return (
     <AdminSidebar>
       <div className="p-4 sm:p-6">
-        <div className="mb-6">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Admin Settings</h1>
-          <p className="text-sm sm:text-base text-gray-600">Configure system settings and preferences</p>
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Admin Settings</h1>
+            <p className="text-gray-600 mt-1">Configure system settings and preferences</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"
+          >
+            Sign Out
+          </button>
         </div>
 
         <div className="flex flex-col xl:flex-row gap-4 sm:gap-6">
