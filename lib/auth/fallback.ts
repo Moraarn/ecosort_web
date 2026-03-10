@@ -28,84 +28,51 @@ export interface FallbackUser {
 export interface FallbackSession {
   userId: string
   expiresAt: number
-      const data = readFileSync(USERS_FILE, 'utf-8')
-      const users = JSON.parse(data)
-      console.log('FallbackAuth: Loaded users:', Object.keys(users).length)
-      return users
-    } else {
-      console.log('FallbackAuth: Users file does not exist')
-    }
-  } catch (error) {
-    console.log('FallbackAuth: Failed to load users:', error)
-  }
-  return {}
-}
-
-const saveUsers = (users: any) => {
-  try {
-    console.log('FallbackAuth: Saving users to:', USERS_FILE)
-    console.log('FallbackAuth: Users to save:', Object.keys(users).length)
-    writeFileSync(USERS_FILE, JSON.stringify(users, null, 2))
-    console.log('FallbackAuth: Users saved successfully')
-  } catch (error) {
-    console.log('FallbackAuth: Failed to save users:', error)
-  }
 }
 
 export class FallbackAuth {
-  static generateId(): string {
+  private static sessions: Map<string, FallbackSession> = new Map()
+  private static users: Map<string, FallbackUser> = new Map()
+
+  private static generateId(): string {
     return Math.random().toString(36).substring(2) + Date.now().toString(36)
   }
 
-  static generateSessionToken(): string {
-    return Math.random().toString(36).substring(2) + Date.now().toString(36)
+  private static generateSessionToken(): string {
+    return Math.random().toString(36).substring(2) + Date.now().toString(36) + Math.random().toString(36).substring(2)
   }
 
   static async signUp(email: string, password: string, fullName: string, phone?: string, role: 'citizen' | 'admin' = 'citizen'): Promise<{ user: FallbackUser; sessionToken: string }> {
-    // Load existing users
-    const users = loadUsers()
-    
-    // Check if user already exists
-    for (const user of Object.values(users) as FallbackUser[]) {
-      if (user.email === email) {
-        throw new Error('User already exists')
-      }
-    }
-
-    const userId = this.generateId()
-    const sessionToken = this.generateSessionToken()
-    const now = Date.now()
-
     const user: FallbackUser = {
-      id: userId,
+      id: this.generateId(),
       email,
       fullName,
       phone,
       role,
       totalPoints: 0,
-      createdAt: new Date(now).toISOString(),
-      password // Store password for testing (in production, this would be hashed)
+      createdAt: new Date().toISOString(),
+      password // In production, this should be hashed
     }
 
-    // Store user and session
-    users[userId] = user
-    saveUsers(users)
+    this.users.set(user.id, user)
+    console.log('FallbackAuth: Created user:', { id: user.id, email: user.email, role: user.role })
 
-    const sessions = loadSessions()
-    sessions[sessionToken] = { userId, expiresAt: now + (7 * 24 * 60 * 60 * 1000) } // 7 days
-    saveSessions(sessions)
-
+    const sessionToken = this.generateSessionToken()
+    const now = Date.now()
+    
+    this.sessions.set(sessionToken, { userId: user.id, expiresAt: now + (7 * 24 * 60 * 60 * 1000) }) // 7 days
+    
+    console.log('FallbackAuth: Session created. Total sessions now:', this.sessions.size)
+    
     return { user, sessionToken }
   }
 
   static async signIn(email: string, password: string): Promise<{ user: FallbackUser; sessionToken: string }> {
     console.log('FallbackAuth: Looking for user with email:', email)
-    
-    const users = loadUsers()
-    console.log('FallbackAuth: Available users:', Object.values(users).map((u: any) => ({ id: u.id, email: u.email, role: u.role })))
+    console.log('FallbackAuth: Available users:', Array.from(this.users.values()).map(u => ({ id: u.id, email: u.email, role: u.role })))
     
     // Find user by email
-    for (const user of Object.values(users) as FallbackUser[]) {
+    for (const user of this.users.values()) {
       if (user.email === email && user.password === password) {
         const sessionToken = this.generateSessionToken()
         const now = Date.now()
@@ -113,11 +80,9 @@ export class FallbackAuth {
         console.log('FallbackAuth: Found user, creating session with token:', sessionToken.substring(0, 10) + '...')
         
         // Create new session
-        const sessions = loadSessions()
-        sessions[sessionToken] = { userId: user.id, expiresAt: now + (7 * 24 * 60 * 60 * 1000) } // 7 days
-        saveSessions(sessions)
+        this.sessions.set(sessionToken, { userId: user.id, expiresAt: now + (7 * 24 * 60 * 60 * 1000) }) // 7 days
         
-        console.log('FallbackAuth: Session stored. Total sessions now:', Object.keys(sessions).length)
+        console.log('FallbackAuth: Session stored. Total sessions now:', this.sessions.size)
         
         return { user, sessionToken }
       }
@@ -128,8 +93,7 @@ export class FallbackAuth {
   }
 
   static async getUserBySession(sessionToken: string): Promise<FallbackUser | null> {
-    const sessions = loadSessions()
-    const session = sessions[sessionToken]
+    const session = this.sessions.get(sessionToken)
     console.log('FallbackAuth: Session lookup for token:', sessionToken.substring(0, 10) + '...')
     console.log('FallbackAuth: Session found:', !!session)
     
@@ -142,63 +106,14 @@ export class FallbackAuth {
     if (!session || session.expiresAt < Date.now()) {
       if (session) {
         console.log('FallbackAuth: Removing expired session')
-        delete sessions[sessionToken]
-        saveSessions(sessions)
+        this.sessions.delete(sessionToken)
       }
       return null
     }
 
-    const users = loadUsers()
-    const user = users[session.userId]
+    const user = this.users.get(session.userId)
     console.log('FallbackAuth: Found user for session:', !!user)
     return user || null
-  }
-
-  static async signOut(sessionToken: string): Promise<void> {
-    const sessions = loadSessions()
-    delete sessions[sessionToken]
-    saveSessions(sessions)
-  }
-
-  // Helper method to create some default users for testing
-  static createDefaultUsers(): void {
-    const users = loadUsers()
-    const sessions = loadSessions()
-    
-    // Only create defaults if no users exist
-    if (Object.keys(users).length === 0) {
-      const defaultUsers = [
-        {
-          email: 'admin@ecosort.com',
-          password: 'admin123',
-          fullName: 'Admin User',
-          role: 'admin' as const
-        },
-        {
-          email: 'citizen@ecosort.com',
-          password: 'citizen123',
-          fullName: 'Citizen User',
-          role: 'citizen' as const
-        }
-      ]
-
-      defaultUsers.forEach(({ email, password, fullName, role }) => {
-        const userId = this.generateId()
-        const user: FallbackUser = {
-          id: userId,
-          email,
-          fullName,
-          role,
-          totalPoints: 0,
-          createdAt: new Date().toISOString(),
-          password // Include password for testing
-        }
-        users[userId] = user
-      })
-      
-      saveUsers(users)
-      console.log('FallbackAuth: Created default users')
-    }
   }
 
   static async getCurrentUser(request: NextRequest): Promise<FallbackUser | null> {
@@ -221,9 +136,7 @@ export class FallbackAuth {
     }
 
     console.log('FallbackAuth: Looking for session token:', sessionToken?.substring(0, 10) + '...')
-    
-    const sessions = loadSessions()
-    console.log('FallbackAuth: Available sessions:', Object.keys(sessions).map((k: any) => k.substring(0, 10) + '...'))
+    console.log('FallbackAuth: Available sessions:', Array.from(this.sessions.keys()).map(k => k.substring(0, 10) + '...'))
 
     if (!sessionToken) {
       console.log('FallbackAuth: No session token found')
@@ -235,10 +148,47 @@ export class FallbackAuth {
     return user
   }
 
+  static async signOut(sessionToken: string): Promise<void> {
+    this.sessions.delete(sessionToken)
+  }
+
+  static async createDefaultUsers(): Promise<void> {
+    // Only create defaults if no users exist
+    if (this.users.size === 0) {
+      // Create default admin user
+      const adminUser: FallbackUser = {
+        id: this.generateId(),
+        email: 'admin@ecosort.com',
+        fullName: 'Admin User',
+        role: 'admin',
+        totalPoints: 0,
+        createdAt: new Date().toISOString(),
+        password: 'admin123'
+      }
+
+      // Create default citizen user
+      const citizenUser: FallbackUser = {
+        id: this.generateId(),
+        email: 'citizen@ecosort.com',
+        fullName: 'Citizen User',
+        role: 'citizen',
+        totalPoints: 0,
+        createdAt: new Date().toISOString(),
+        password: 'citizen123'
+      }
+
+      this.users.set(adminUser.id, adminUser)
+      this.users.set(citizenUser.id, citizenUser)
+
+      console.log('FallbackAuth: Default users created')
+      console.log('FallbackAuth: Admin - email: admin@ecosort.com, password: admin123')
+      console.log('FallbackAuth: Citizen - email: citizen@ecosort.com, password: citizen123')
+    }
+  }
+
   // Get all users (for debugging)
   static getAllUsers(): FallbackUser[] {
-    const users = loadUsers()
-    return Object.values(users) as FallbackUser[]
+    return Array.from(this.users.values())
   }
 }
 
