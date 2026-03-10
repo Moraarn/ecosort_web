@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 
@@ -11,6 +11,35 @@ interface AdminSidebarProps {
 export default function AdminSidebar({ children }: AdminSidebarProps) {
   const pathname = usePathname()
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  // Check screen size and set mobile state
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768
+      setIsMobile(mobile)
+      setIsCollapsed(mobile) // Auto-collapse on mobile
+    }
+
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      const handleClickOutside = (e: MouseEvent) => {
+        const target = e.target as HTMLElement
+        if (!target.closest('.sidebar-container') && !target.closest('.mobile-menu-toggle')) {
+          setIsMobileMenuOpen(false)
+        }
+      }
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [isMobileMenuOpen])
 
   const sidebarItems = [
     { 
@@ -72,8 +101,16 @@ export default function AdminSidebar({ children }: AdminSidebarProps) {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
+      {/* Mobile Menu Overlay */}
+      {isMobile && isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Admin Sidebar */}
-      <div className={`${isCollapsed ? "w-16" : "w-64"} bg-primary text-white fixed h-full py-2 mb-6 transition-all duration-300`}>
+      <div className={`sidebar-container ${isMobile ? (isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'} ${isCollapsed ? "w-16" : "w-64"} bg-primary text-white fixed h-full py-2 mb-6 transition-all duration-300 z-50 lg:translate-x-0`}>
         <div className={`${isCollapsed ? "px-2" : "p-6"}`}>
           {/* Logo and Toggle */}
           <div className="flex items-center justify-between mb-6">
@@ -87,14 +124,26 @@ export default function AdminSidebar({ children }: AdminSidebarProps) {
                 <span className="font-bold text-xl text-white">Admin</span>
               </Link>
             )}
-            <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="p-2 rounded-lg hover:bg-primary/80 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isCollapsed ? "M4 6h16M4 12h16M4 18h16" : "M6 18L18 6M6 6l12 12"} />
-              </svg>
-            </button>
+            {!isMobile && (
+              <button
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="p-2 rounded-lg hover:bg-primary/80 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isCollapsed ? "M4 6h16M4 12h16M4 18h16" : "M6 18L18 6M6 6l12 12"} />
+                </svg>
+              </button>
+            )}
+            {isMobile && (
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2 rounded-lg hover:bg-primary/80 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
           </div>
 
           <nav className="space-y-2">
@@ -102,6 +151,7 @@ export default function AdminSidebar({ children }: AdminSidebarProps) {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => isMobile && setIsMobileMenuOpen(false)}
                 className={`group flex items-center ${isCollapsed ? "justify-center" : "space-x-3"} px-4 py-3 rounded-lg transition-colors relative ${
                   pathname === item.href
                     ? "bg-primary/80 text-white"
@@ -115,6 +165,12 @@ export default function AdminSidebar({ children }: AdminSidebarProps) {
                     {item.label}
                   </div>
                 )}
+                {/* Mobile tooltip */}
+                {isMobile && isCollapsed && (
+                  <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                    {item.label}
+                  </div>
+                )}
               </Link>
             ))}
           </nav>
@@ -122,21 +178,34 @@ export default function AdminSidebar({ children }: AdminSidebarProps) {
       </div>
 
       {/* Main Content */}
-      <div className={`flex-1 ${isCollapsed ? "ml-16" : "ml-64"} transition-all duration-300`}>
+      <div className={`flex-1 ${isMobile ? 'ml-0' : (isCollapsed ? "ml-16" : "ml-64")} transition-all duration-300`}>
         {/* Top Navbar */}
         <div className="bg-white shadow-sm border-b sticky top-0 z-10">
           <div className="px-6 py-6 flex items-center justify-between">
-            <div className="flex-1 max-w-lg">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search admin functions..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary placeholder-gray-400"
-                />
-                <div className="absolute left-3 top-2.5 text-gray-400">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <div className="flex items-center space-x-4">
+              {/* Mobile Menu Toggle */}
+              {isMobile && (
+                <button
+                  onClick={() => setIsMobileMenuOpen(true)}
+                  className="mobile-menu-toggle p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
+                </button>
+              )}
+              <div className="flex-1 max-w-lg">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search admin functions..."
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary placeholder-gray-400"
+                  />
+                  <div className="absolute left-3 top-2.5 text-gray-400">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
                 </div>
               </div>
             </div>

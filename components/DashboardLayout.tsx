@@ -1,12 +1,41 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  // Check screen size and set mobile state
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768
+      setIsMobile(mobile)
+      setIsCollapsed(mobile) // Auto-collapse on mobile
+    }
+
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      const handleClickOutside = (e: MouseEvent) => {
+        const target = e.target as HTMLElement
+        if (!target.closest('.sidebar-container') && !target.closest('.mobile-menu-toggle')) {
+          setIsMobileMenuOpen(false)
+        }
+      }
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [isMobileMenuOpen])
 
   const sidebarItems = [
     { 
@@ -68,8 +97,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
+      {/* Mobile Menu Overlay */}
+      {isMobile && isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <div className={`${isCollapsed ? "w-16" : "w-64"} bg-green-600 text-white fixed h-full py-2 mb-6 transition-all duration-300`}>
+      <div className={`sidebar-container ${isMobile ? (isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'} ${isCollapsed ? "w-16" : "w-64"} bg-green-600 text-white fixed h-full py-2 mb-6 transition-all duration-300 z-50 lg:translate-x-0`}>
         <div className={`${isCollapsed ? "px-2" : "p-6"}`}>
           {/* Logo and Toggle */}
           <div className="flex items-center justify-between mb-6">
@@ -83,15 +120,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <span className="font-bold text-xl text-white">EcoSort</span>
               </Link>
             )}
-            <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="p-2 rounded-lg hover:bg-green-700 transition-colors flex-shrink-0"
-              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              <svg className="w-5 h-5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isCollapsed ? "M9 5l7 7-7 7" : "M15 19l-7-7 7-7"} />
-              </svg>
-            </button>
+            {!isMobile && (
+              <button
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="p-2 rounded-lg hover:bg-green-700 transition-colors flex-shrink-0"
+                title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                <svg className="w-5 h-5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isCollapsed ? "M9 5l7 7-7 7" : "M15 19l-7-7 7-7"} />
+                </svg>
+              </button>
+            )}
+            {isMobile && (
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2 rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
           </div>
 
           <nav className="space-y-2">
@@ -99,6 +148,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div key={item.href} className="relative group">
                 <Link
                   href={item.href}
+                  onClick={() => isMobile && setIsMobileMenuOpen(false)}
                   className={`flex items-center ${isCollapsed ? "justify-center" : "space-x-3"} px-4 py-3 rounded-lg transition-colors w-full ${
                     pathname === item.href
                       ? "bg-green-700 text-white"
@@ -118,6 +168,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </div>
                   </div>
                 )}
+                {/* Mobile tooltip */}
+                {isMobile && isCollapsed && (
+                  <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                    <div className="bg-gray-900 text-white text-sm px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+                      {item.label}
+                      <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1 w-2 h-2 bg-gray-900 rotate-45"></div>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </nav>
@@ -125,21 +184,34 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
 
       {/* Main Content */}
-      <div className={`flex-1 ${isCollapsed ? "ml-16" : "ml-64"} transition-all duration-300`}>
+      <div className={`flex-1 ${isMobile ? 'ml-0' : (isCollapsed ? "ml-16" : "ml-64")} transition-all duration-300`}>
         {/* Top Navbar */}
         <div className="bg-white shadow-sm border-b sticky top-0 z-10">
           <div className="px-6 py-6 flex items-center justify-between">
-            <div className="flex-1 max-w-lg">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-400"
-                />
-                <div className="absolute left-3 top-2.5 text-gray-400">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <div className="flex items-center space-x-4">
+              {/* Mobile Menu Toggle */}
+              {isMobile && (
+                <button
+                  onClick={() => setIsMobileMenuOpen(true)}
+                  className="mobile-menu-toggle p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
+                </button>
+              )}
+              <div className="flex-1 max-w-lg">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-400"
+                  />
+                  <div className="absolute left-3 top-2.5 text-gray-400">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
                 </div>
               </div>
             </div>
