@@ -11,15 +11,22 @@ export async function GET(request: NextRequest) {
     // Debug: Log authentication headers
     const authHeader = request.headers.get('authorization')
     const cookieHeader = request.headers.get('cookie')
-    console.log('Auth headers:', { authHeader: authHeader?.substring(0, 20) + '...', cookieHeader: cookieHeader?.substring(0, 50) + '...' })
+    console.log('=== ADMIN USERS API DEBUG ===')
+    console.log('Auth headers:', { 
+      authHeader: authHeader?.substring(0, 20) + '...', 
+      cookieHeader: cookieHeader?.substring(0, 50) + '...' 
+    })
     
     // Try to get user from Supabase first
     let user = null
     let isAdmin = false
 
     try {
+      console.log('Trying Supabase authentication...')
       const supabase = await createServerClient()
       const { data: { user: authUser } } = await supabase.auth.getUser()
+      
+      console.log('Supabase auth result:', authUser ? { id: authUser.id, email: authUser.email } : 'No user found')
       
       if (authUser) {
         // Check if user has admin profile
@@ -29,40 +36,48 @@ export async function GET(request: NextRequest) {
           .eq('id', authUser.id)
           .single()
         
+        console.log('Supabase profile result:', profile)
+        
         // Use type assertion to bypass TypeScript inference
         if (profile && (profile as any).role === 'admin') {
           user = authUser
           isAdmin = true
-          console.log('Supabase admin authentication successful')
+          console.log('✅ Supabase admin authentication successful')
+        } else {
+          console.log('❌ User is not admin in Supabase')
         }
       }
     } catch (supabaseError) {
-      console.log('Supabase auth check failed, trying fallback:', supabaseError)
+      console.log('❌ Supabase auth check failed, trying fallback:', supabaseError)
     }
 
     // If Supabase failed, try fallback auth
     if (!isAdmin) {
       try {
+        console.log('Trying fallback authentication...')
         const fallbackUser = await FallbackAuth.getCurrentUser(request)
         console.log('Fallback auth result:', fallbackUser ? { id: fallbackUser.id, email: fallbackUser.email, role: fallbackUser.role } : 'No user found')
         
         if (fallbackUser && fallbackUser.role === 'admin') {
           isAdmin = true
-          console.log('Using fallback admin authentication')
+          console.log('✅ Using fallback admin authentication')
+        } else {
+          console.log('❌ Fallback user is not admin')
         }
       } catch (fallbackError) {
-        console.log('Fallback auth check failed:', fallbackError)
+        console.log('❌ Fallback auth check failed:', fallbackError)
       }
     }
 
     if (!isAdmin) {
-      console.log('Admin access denied - user not found or not admin')
+      console.log('❌ Admin access denied - user not found or not admin')
       return NextResponse.json(
         { error: 'Admin access required' },
         { status: 403 }
       )
     }
 
+    console.log('✅ Admin access granted, fetching users...')
     // Fetch users from database or fallback
     let users = []
     
