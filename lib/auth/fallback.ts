@@ -3,6 +3,17 @@ import { NextRequest } from 'next/server'
 import { writeFileSync, readFileSync, existsSync } from 'fs'
 import { join } from 'path'
 
+// In-memory session storage as fallback for production
+const memorySessions = new Map()
+const memoryUsers = new Map()
+
+// File-based storage for development
+const SESSIONS_FILE = join(process.cwd(), 'sessions.json')
+const USERS_FILE = join(process.cwd(), 'users.json')
+
+// Determine if we should use memory storage (production) or file storage (development)
+const useMemoryStorage = process.env.NODE_ENV === 'production'
+
 export interface FallbackUser {
   id: string
   email: string
@@ -14,43 +25,9 @@ export interface FallbackUser {
   password?: string // Add password field for testing
 }
 
-// File-based storage for persistence
-const SESSIONS_FILE = join(process.cwd(), 'sessions.json')
-const USERS_FILE = join(process.cwd(), 'users.json')
-
-// Helper functions for file storage
-const loadSessions = () => {
-  try {
-    console.log('FallbackAuth: Loading sessions from:', SESSIONS_FILE)
-    if (existsSync(SESSIONS_FILE)) {
-      const data = readFileSync(SESSIONS_FILE, 'utf-8')
-      const sessions = JSON.parse(data)
-      console.log('FallbackAuth: Loaded sessions:', Object.keys(sessions).length)
-      return sessions
-    } else {
-      console.log('FallbackAuth: Sessions file does not exist')
-    }
-  } catch (error) {
-    console.log('FallbackAuth: Failed to load sessions:', error)
-  }
-  return {}
-}
-
-const saveSessions = (sessions: any) => {
-  try {
-    console.log('FallbackAuth: Saving sessions to:', SESSIONS_FILE)
-    console.log('FallbackAuth: Sessions to save:', Object.keys(sessions).length)
-    writeFileSync(SESSIONS_FILE, JSON.stringify(sessions, null, 2))
-    console.log('FallbackAuth: Sessions saved successfully')
-  } catch (error) {
-    console.log('FallbackAuth: Failed to save sessions:', error)
-  }
-}
-
-const loadUsers = () => {
-  try {
-    console.log('FallbackAuth: Loading users from:', USERS_FILE)
-    if (existsSync(USERS_FILE)) {
+export interface FallbackSession {
+  userId: string
+  expiresAt: number
       const data = readFileSync(USERS_FILE, 'utf-8')
       const users = JSON.parse(data)
       console.log('FallbackAuth: Loaded users:', Object.keys(users).length)
