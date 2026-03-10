@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { FallbackAuth } from '@/lib/auth/fallback'
 
+interface Profile {
+  role: string
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Debug: Log authentication headers
@@ -23,7 +27,7 @@ export async function GET(request: NextRequest) {
           .from('profiles')
           .select('role')
           .eq('id', authUser.id)
-          .single() as { data: { role: string } | null, error: any }
+          .single() as { data: Profile | null, error: any }
         
         if (profile && profile.role === 'admin') {
           user = authUser
@@ -137,7 +141,7 @@ export async function PUT(request: NextRequest) {
           .from('profiles')
           .select('role')
           .eq('id', authUser.id)
-          .single() as { data: { role: string } | null, error: any }
+          .single() as { data: Profile | null, error: any }
         
         if (profile && profile.role === 'admin') {
           isAdmin = true
