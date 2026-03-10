@@ -137,23 +137,23 @@ export default function Rewards() {
 
   return (
     <DashboardLayout>
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Rewards</h1>
-          <p className="text-gray-600">Redeem your points for amazing eco-friendly rewards</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Rewards</h1>
+          <p className="text-sm sm:text-base text-gray-600">Redeem your points for amazing eco-friendly rewards</p>
         </div>
 
         {/* Points Balance */}
-        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-6 mb-6 text-white">
+        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 sm:p-6 mb-6 text-white">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-green-100 text-sm mb-1">Available Points</p>
-              <p className="text-3xl font-bold">{userPoints.toLocaleString()}</p>
-              <p className="text-green-100 text-sm mt-2">Keep recycling to earn more points!</p>
+            <div className="flex-1">
+              <p className="text-green-100 text-xs sm:text-sm mb-1">Available Points</p>
+              <p className="text-2xl sm:text-3xl font-bold">{userPoints.toLocaleString()}</p>
+              <p className="text-green-100 text-xs sm:text-sm mt-2">Keep recycling to earn more points!</p>
             </div>
-            <div className="text-white">
-              <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="text-white flex-shrink-0 ml-4">
+              <svg className="w-12 h-12 sm:w-16 sm:h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
               </svg>
             </div>
@@ -163,12 +163,12 @@ export default function Rewards() {
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm border mb-6">
           <div className="border-b">
-            <nav className="flex space-x-8 px-6" aria-label="Tabs">
+            <nav className="flex space-x-1 sm:space-x-8 px-4 sm:px-6 overflow-x-auto" aria-label="Tabs">
               {["available", "redeemed"].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm capitalize ${
+                  className={`py-4 px-2 sm:px-1 border-b-2 font-medium text-sm capitalize whitespace-nowrap ${
                     activeTab === tab
                       ? "border-green-600 text-green-600"
                       : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
@@ -183,49 +183,49 @@ export default function Rewards() {
 
         {/* Available Rewards */}
         {activeTab === "available" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {availableRewards.map((reward) => (
               <div key={reward.id} className="bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow">
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                   <div className="flex items-start justify-between mb-4">
-                    <div className="text-4xl">{reward.image}</div>
-                    <span className={`px-2 py-1 text-xs rounded-full ${getCategoryColor(reward.category)}`}>
+                    <div className="text-3xl sm:text-4xl">{reward.image}</div>
+                    <span className={`px-2 py-1 text-xs rounded-full flex-shrink-0 ${getCategoryColor(reward.category)}`}>
                       {reward.category}
                     </span>
                   </div>
                   
-                  <h3 className="font-semibold text-gray-900 mb-2">{reward.title}</h3>
-                  <p className="text-gray-600 text-sm mb-3">{reward.description}</p>
+                  <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base leading-tight">{reward.title}</h3>
+                  <p className="text-gray-600 text-xs sm:text-sm mb-3 line-clamp-2">{reward.description}</p>
                   
-                  <div className="flex items-center text-sm text-gray-500 mb-4">
-                    <div className="flex items-center mr-4">
-                      <svg className="w-4 h-4 mr-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="flex flex-col sm:flex-row sm:items-center text-xs sm:text-sm text-gray-500 mb-4 gap-2 sm:gap-4">
+                    <div className="flex items-center">
+                      <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                       </svg>
-                      {reward.partner}
+                      <span className="truncate">{reward.partner}</span>
                     </div>
                     <div className="flex items-center">
-                      <svg className="w-4 h-4 mr-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      {reward.expiry}
+                      <span>{reward.expiry}</span>
                     </div>
                   </div>
                   
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-2xl font-bold text-green-600">{reward.points}</p>
+                      <p className="text-xl sm:text-2xl font-bold text-green-600">{reward.points}</p>
                       <p className="text-xs text-gray-500">points</p>
                     </div>
                     <button 
-                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-xs sm:text-sm ${
                         userPoints >= reward.points
                           ? "bg-green-600 hover:bg-green-700 text-white"
                           : "bg-gray-200 text-gray-400 cursor-not-allowed"
                       }`}
                       disabled={userPoints < reward.points}
                     >
-                      {userPoints >= reward.points ? "Redeem" : "Insufficient Points"}
+                      {userPoints >= reward.points ? "Redeem" : "Insufficient"}
                     </button>
                   </div>
                 </div>
@@ -236,38 +236,38 @@ export default function Rewards() {
 
         {/* Redeemed Rewards */}
         {activeTab === "redeemed" && (
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {redeemedRewards.map((reward) => (
-              <div key={reward.id} className="bg-white rounded-xl shadow-sm border p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="text-3xl">{reward.image}</div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{reward.title}</h3>
-                      <p className="text-gray-600 text-sm">{reward.description}</p>
-                      <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
+              <div key={reward.id} className="bg-white rounded-xl shadow-sm border p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center space-x-3 sm:space-x-4">
+                    <div className="text-2xl sm:text-3xl flex-shrink-0">{reward.image}</div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 text-sm sm:text-base">{reward.title}</h3>
+                      <p className="text-gray-600 text-xs sm:text-sm">{reward.description}</p>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2 text-xs sm:text-sm text-gray-500">
                         <div className="flex items-center">
-                          <svg className="w-4 h-4 mr-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                           </svg>
-                          {reward.partner}
+                          <span className="truncate">{reward.partner}</span>
                         </div>
                         <div className="flex items-center">
-                          <svg className="w-4 h-4 mr-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
-                          Redeemed on {reward.redeemedDate}
+                          <span>Redeemed on {reward.redeemedDate}</span>
                         </div>
                         <div className="flex items-center">
-                          <svg className="w-4 h-4 mr-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                           </svg>
-                          {reward.points} points
+                          <span>{reward.points} points</span>
                         </div>
                       </div>
                     </div>
                   </div>
-                  <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                  <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs sm:text-sm font-medium flex-shrink-0">
                     Redeemed
                   </div>
                 </div>

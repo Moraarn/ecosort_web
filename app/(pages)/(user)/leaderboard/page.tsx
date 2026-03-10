@@ -39,11 +39,11 @@ export default function Leaderboard() {
 
   return (
     <DashboardLayout>
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Leaderboard</h1>
-          <p className="text-gray-600">See how you rank among top eco-warriors in your community</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Leaderboard</h1>
+          <p className="text-sm sm:text-base text-gray-600">See how you rank among top eco-warriors in your community</p>
         </div>
 
 
@@ -51,20 +51,20 @@ export default function Leaderboard() {
 
         {/* Full Leaderboard */}
         <div className="bg-white rounded-lg border border-gray-300 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-300">
-            <h2 className="text-xl font-semibold text-gray-900">Complete Rankings</h2>
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-300">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Complete Rankings</h2>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[600px]">
               <thead>
                 <tr className="border-b border-gray-300">
-                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Rank</th>
-                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Name</th>
-                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Points</th>
-                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Recycled</th>
-                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">CO₂ Saved</th>
-                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Trend</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-700">Rank</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-700">Name</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-700">Points</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-700">Recycled</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-700">CO₂ Saved</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-700">Trend</th>
                 </tr>
               </thead>
               <tbody>
@@ -73,32 +73,33 @@ export default function Leaderboard() {
                     key={user.rank}
                     className={`border-b border-gray-200 ${user.isCurrentUser ? "bg-gray-50" : ""}`}
                   >
-                    <td className="px-6 py-4 text-sm text-gray-900">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900">
                       {getRankBadge(user.rank)}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4">
                       <div className="flex items-center">
-                        <div className="h-8 w-8 rounded-full border border-gray-300 flex items-center justify-center mr-3">
+                        <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-full border border-gray-300 flex items-center justify-center mr-2 sm:mr-3">
                           <span className="text-xs font-medium text-gray-600">{user.avatar}</span>
                         </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
+                        <div className="min-w-0">
+                          <div className="text-xs sm:text-sm font-medium text-gray-900">
                             {user.name}
-                            {user.isCurrentUser && <span className="ml-2 text-xs text-gray-500">(You)</span>}
+                            {user.isCurrentUser && <span className="ml-2 text-xs text-gray-500 hidden sm:inline">(You)</span>}
+                            {user.isCurrentUser && <span className="ml-1 text-xs text-gray-500 sm:hidden">★</span>}
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900">
                       {user.points.toLocaleString()}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900">
                       {user.recycled}kg
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900">
                       {user.co2Saved}kg
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900">
                       {getTrendIcon(user.trend)}
                     </td>
                   </tr>

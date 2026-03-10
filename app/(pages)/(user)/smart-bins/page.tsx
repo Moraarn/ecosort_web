@@ -198,15 +198,15 @@ export default function SmartBins() {
 
   return (
     <DashboardLayout>
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {/* Header */}
         <div className="mb-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Smart Bins Management</h1>
-              <p className="text-gray-600">Monitor and manage your smart waste bins in real-time</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Smart Bins Management</h1>
+              <p className="text-sm sm:text-base text-gray-600">Monitor and manage your smart waste bins in real-time</p>
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="text-xs sm:text-sm text-gray-500">
               Last updated: {lastRefreshTime.toLocaleTimeString()}
             </div>
           </div>
@@ -215,11 +215,11 @@ export default function SmartBins() {
 
         {/* View Toggle */}
         <div className="bg-white rounded-xl shadow-sm border p-4 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex space-x-2">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setViewMode("list")}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
                   viewMode === "list"
                     ? "bg-green-600 text-white"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -228,11 +228,12 @@ export default function SmartBins() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
-                List View
+                <span className="hidden sm:inline">List View</span>
+                <span className="sm:hidden">List</span>
               </button>
               <button
                 onClick={() => setViewMode("map")}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
                   viewMode === "map"
                     ? "bg-green-600 text-white"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -241,15 +242,16 @@ export default function SmartBins() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                 </svg>
-                Map View
+                <span className="hidden sm:inline">Map View</span>
+                <span className="sm:hidden">Map</span>
               </button>
             </div>
             
-            <div className="flex items-center space-x-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <button 
                 onClick={handleRefresh}
                 disabled={isRefreshing}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                className={`flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
                   isRefreshing 
                     ? "bg-gray-400 text-white cursor-not-allowed" 
                     : "bg-primary hover:bg-primary text-white"
@@ -258,13 +260,15 @@ export default function SmartBins() {
                 <svg className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                {isRefreshing ? "Refreshing..." : "Refresh Data"}
+                <span className="hidden sm:inline">{isRefreshing ? "Refreshing..." : "Refresh Data"}</span>
+                <span className="sm:hidden">{isRefreshing ? "..." : "Refresh"}</span>
               </button>
-              <button onClick={handleAddBin} className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors">
+              <button onClick={handleAddBin} className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors text-sm">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                Add New Bin
+                <span className="hidden sm:inline">Add New Bin</span>
+                <span className="sm:hidden">Add Bin</span>
               </button>
             </div>
           </div>
@@ -272,12 +276,12 @@ export default function SmartBins() {
 
         {/* List View */}
         {viewMode === "list" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {smartBins.map((bin) => (
-              <div key={bin.id} className="bg-white rounded-xl shadow-sm border p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-gray-900">{bin.name}</h3>
-                  <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(bin.status)}`}>
+              <div key={bin.id} className="bg-white rounded-xl shadow-sm border p-4 sm:p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <h3 className="font-semibold text-gray-900 text-sm sm:text-base leading-tight">{bin.name}</h3>
+                  <span className={`px-2 py-1 text-xs rounded-full flex-shrink-0 ${getStatusColor(bin.status)}`}>
                     {bin.status}
                   </span>
                 </div>
@@ -327,39 +331,41 @@ export default function SmartBins() {
         {/* Map View */}
         {viewMode === "map" && (
           <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-            <div className="p-6 border-b">
-              <h2 className="text-xl font-semibold text-gray-900">Smart Bin Locations</h2>
+            <div className="p-4 sm:p-6 border-b">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Smart Bin Locations</h2>
               <p className="text-gray-600 text-sm mt-1">
                 Click on a marker to see bin details and status
               </p>
             </div>
             
-            <div className="p-4">
-              <GoogleMap 
-                markers={smartBins} 
-                onMarkerClick={(marker) => setSelectedBin(marker)}
-              />
+            <div className="p-2 sm:p-4">
+              <div className="h-64 sm:h-96 lg:h-[500px]">
+                <GoogleMap 
+                  markers={smartBins} 
+                  onMarkerClick={(marker) => setSelectedBin(marker)}
+                />
+              </div>
             </div>
             
             {selectedBin && (
-              <div className="p-6 border-t bg-gray-50">
-                <h3 className="font-semibold text-gray-900 mb-3">Selected Bin: {selectedBin.name}</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-4 sm:p-6 border-t bg-gray-50">
+                <h3 className="font-semibold text-gray-900 mb-3 text-sm sm:text-base">Selected Bin: {selectedBin.name}</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                   <div>
-                    <p className="text-sm text-gray-600">Status</p>
-                    <p className="font-medium">{selectedBin.status}</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Status</p>
+                    <p className="font-medium text-sm sm:text-base">{selectedBin.status}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Capacity</p>
-                    <p className="font-medium">{selectedBin.progress}%</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Capacity</p>
+                    <p className="font-medium text-sm sm:text-base">{selectedBin.progress}%</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Waste Type</p>
-                    <p className="font-medium">{selectedBin.wasteType}</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Waste Type</p>
+                    <p className="font-medium text-sm sm:text-base">{selectedBin.wasteType}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Last Sync</p>
-                    <p className="font-medium">{selectedBin.lastSync}</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Last Sync</p>
+                    <p className="font-medium text-sm sm:text-base">{selectedBin.lastSync}</p>
                   </div>
                 </div>
               </div>
@@ -370,14 +376,14 @@ export default function SmartBins() {
 
       {/* Add Bin Modal */}
       {showAddBinModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col">
-            <div className="p-6 border-b border-gray-200 flex-shrink-0">
-              <h2 className="text-xl font-semibold text-gray-900">Add New Smart Bin</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col">
+            <div className="p-4 sm:p-6 border-b border-gray-200 flex-shrink-0">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Add New Smart Bin</h2>
               <p className="text-gray-600 text-sm mt-1">Enter the details for the new smart bin</p>
             </div>
             
-            <div className="p-6 space-y-4 overflow-y-auto flex-1">
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Bin Name *
@@ -386,7 +392,7 @@ export default function SmartBins() {
                   type="text"
                   value={newBin.name}
                   onChange={(e) => setNewBin({ ...newBin, name: e.target.value })}
-                  className="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
                   placeholder="e.g., Downtown Plaza Bin"
                 />
               </div>
@@ -399,7 +405,7 @@ export default function SmartBins() {
                   type="text"
                   value={newBin.location}
                   onChange={(e) => setNewBin({ ...newBin, location: e.target.value })}
-                  className="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
                   placeholder="e.g., Downtown Plaza"
                 />
               </div>
@@ -411,7 +417,7 @@ export default function SmartBins() {
                 <select
                   value={newBin.wasteType}
                   onChange={(e) => setNewBin({ ...newBin, wasteType: e.target.value })}
-                  className="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
                 >
                   <option value="Mixed">Mixed</option>
                   <option value="Plastic">Plastic</option>
@@ -427,7 +433,7 @@ export default function SmartBins() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Location * - Click on the map to select location
                 </label>
-                <div className="border border-gray-300 rounded-lg overflow-hidden">
+                <div className="border border-gray-300 rounded-lg overflow-hidden h-48 sm:h-64">
                   <GoogleMap 
                     markers={newBin.selectedLocation ? [{
                       id: 999,
@@ -443,31 +449,31 @@ export default function SmartBins() {
                   />
                 </div>
                 {newBin.selectedLocation && (
-                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg text-sm">
+                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg text-xs sm:text-sm">
                     <span className="text-green-700 font-medium">Selected Location:</span>
-                    <span className="text-gray-600 ml-2">
+                    <span className="text-gray-600 ml-2 break-all">
                       {newBin.selectedLocation.lat.toFixed(6)}, {newBin.selectedLocation.lng.toFixed(6)}
                     </span>
                   </div>
                 )}
                 {!newBin.selectedLocation && (
-                  <p className="mt-2 text-sm text-gray-500">
+                  <p className="mt-2 text-xs sm:text-sm text-gray-500">
                     Click anywhere on the map to set the bin location
                   </p>
                 )}
               </div>
             </div>
             
-            <div className="p-6 border-t border-gray-200 flex justify-end space-x-3 flex-shrink-0">
+            <div className="p-4 sm:p-6 border-t border-gray-200 flex justify-end space-x-3 flex-shrink-0">
               <button
                 onClick={handleCloseModal}
-                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors text-sm"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveBin}
-                className="px-4 py-2 bg-primary hover:bg-gray-900 text-white rounded-lg font-medium transition-colors"
+                className="px-4 py-2 bg-primary hover:bg-gray-900 text-white rounded-lg font-medium transition-colors text-sm"
               >
                 Add Bin
               </button>

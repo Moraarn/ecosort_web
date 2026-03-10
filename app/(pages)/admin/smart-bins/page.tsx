@@ -94,19 +94,19 @@ export default function AdminSmartBins() {
 
   return (
     <AdminSidebar>
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Smart Bins Management</h1>
-          <p className="text-gray-600">Monitor and manage smart waste bins</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Smart Bins Management</h1>
+          <p className="text-sm sm:text-base text-gray-600">Monitor and manage smart waste bins</p>
         </div>
 
         <div className="space-y-6">
           {/* Loading State */}
           {loading && (
-            <div className="bg-white p-12 rounded-lg border border-gray-200">
+            <div className="bg-white p-8 sm:p-12 rounded-lg border border-gray-200">
               <div className="text-center">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
-                <p className="text-gray-600">Loading smart bins...</p>
+                <div className="inline-block animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-primary mb-4"></div>
+                <p className="text-sm sm:text-base text-gray-600">Loading smart bins...</p>
               </div>
             </div>
           )}
