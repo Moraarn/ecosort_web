@@ -8,6 +8,7 @@ import { MapPin, Navigation } from 'lucide-react'
 import { translateText } from '@/lib/translations'
 import { NearbyBin, LocationPermission } from '@/types/location'
 import dynamic from 'next/dynamic'
+import { SupportedLanguage } from '@/types/languages'
 
 // Dynamically import GoogleMapComponent to avoid SSR issues
 const GoogleMapComponent = dynamic(() => import('@/components/GoogleMapComponent'), {
@@ -17,67 +18,25 @@ const GoogleMapComponent = dynamic(() => import('@/components/GoogleMapComponent
 
 interface NearbyBinsProps {
   classification: any
-  selectedLanguage: string
-  onLocationPermission: () => void
-  onFetchNearbyBins: (latitude: number, longitude: number, wasteType?: string) => Promise<void>
+  selectedLanguage: SupportedLanguage
+  userLocation: { lat: number; lng: number; } | null
+  nearbyBins: any[]
+  locationError: string
+  isLocationLoading: boolean
+  onRequestLocation: () => void
 }
 
 export default function NearbyBins({ 
   classification, 
   selectedLanguage, 
-  onLocationPermission, 
-  onFetchNearbyBins 
+  userLocation,
+  nearbyBins,
+  locationError,
+  isLocationLoading,
+  onRequestLocation
 }: NearbyBinsProps) {
-  const [locationPermission, setLocationPermission] = useState<LocationPermission>({ granted: false })
-  const [nearbyBins, setNearbyBins] = useState<NearbyBin[]>([])
   const [selectedBin, setSelectedBin] = useState<NearbyBin | null>(null)
-  const [isLoadingBins, setIsLoadingBins] = useState(false)
   const [showMap, setShowMap] = useState(false)
-
-  const handleLocationPermission = async () => {
-    if (!navigator.geolocation) {
-      setLocationPermission({ 
-        granted: false, 
-        error: 'Geolocation is not supported by your browser' 
-      })
-      return
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords
-        setLocationPermission({ 
-          granted: true, 
-          coordinates: { latitude, longitude } 
-        })
-        
-        // Fetch nearby bins for the classified waste type
-        if (classification) {
-          setIsLoadingBins(true)
-          await onFetchNearbyBins(latitude, longitude, classification.category.name)
-          setIsLoadingBins(false)
-        }
-      },
-      (error) => {
-        let errorMessage = 'Unable to get your location'
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage = 'Location permission denied'
-            break
-          case error.POSITION_UNAVAILABLE:
-            errorMessage = 'Location information unavailable'
-            break
-          case error.TIMEOUT:
-            errorMessage = 'Location request timed out'
-            break
-        }
-        setLocationPermission({ 
-          granted: false, 
-          error: errorMessage 
-        })
-      }
-    )
-  }
 
   const getBinColorHex = (color: string): string => {
     const colorMap: Record<string, string> = {
@@ -101,46 +60,46 @@ export default function NearbyBins({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <MapPin className="h-5 w-5" />
-          {translateText('nearby bins', selectedLanguage)}
+          {translateText('nearby bins', selectedLanguage as SupportedLanguage)}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {!locationPermission.granted ? (
+        {!userLocation ? (
           <div className="text-center py-6">
             <Navigation className="h-12 w-12 mx-auto mb-4 text-gray-400" />
             <p className="text-gray-600 mb-4">
-              {translateText('find nearby bins for your waste', selectedLanguage)}
+              {translateText('find nearby bins for your waste', selectedLanguage as SupportedLanguage)}
             </p>
             <Button 
-              onClick={handleLocationPermission}
+              onClick={onRequestLocation}
               className="w-full"
             >
               <MapPin className="h-4 w-4 mr-2" />
-              {translateText('enable location', selectedLanguage)}
+              {translateText('enable location', selectedLanguage as SupportedLanguage)}
             </Button>
-            {locationPermission.error && (
-              <p className="text-sm text-red-500 mt-2">{locationPermission.error}</p>
+            {locationError && (
+              <p className="text-sm text-red-500 mt-2">{locationError}</p>
             )}
           </div>
-        ) : isLoadingBins ? (
+        ) : isLocationLoading ? (
           <div className="text-center py-6">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
             <p className="text-gray-600">
-              {translateText('finding nearby bins', selectedLanguage)}...
+              {translateText('finding nearby bins', selectedLanguage as SupportedLanguage)}...
             </p>
           </div>
         ) : nearbyBins.length === 0 ? (
           <div className="text-center py-6">
             <MapPin className="h-12 w-12 mx-auto mb-4 text-gray-400" />
             <p className="text-gray-600">
-              {translateText('no nearby bins found', selectedLanguage)}
+              {translateText('no nearby bins found', selectedLanguage as SupportedLanguage)}
             </p>
           </div>
         ) : (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-600">
-                {translateText('found', selectedLanguage)} {nearbyBins.length} {translateText('bins nearby', selectedLanguage)}
+                {translateText('found', selectedLanguage as SupportedLanguage)} {nearbyBins.length} {translateText('bins nearby', selectedLanguage as SupportedLanguage)}
               </p>
               <Button 
                 variant="outline" 
@@ -152,11 +111,11 @@ export default function NearbyBins({
             </div>
             
             {/* Map View */}
-            {showMap && locationPermission.coordinates && (
+            {showMap && userLocation && (
               <div className="h-64 rounded-lg overflow-hidden border">
                 <GoogleMapComponent
                   bins={nearbyBins}
-                  userLocation={locationPermission.coordinates}
+                  userLocation={{ latitude: userLocation.lat, longitude: userLocation.lng }}
                   selectedBin={selectedBin}
                   onBinSelect={setSelectedBin}
                   className="w-full h-full"

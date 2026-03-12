@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { WasteClassifier } from '@/lib/ai/classifier'
-import { ClassificationResult, ChatMessage, SUPPORTED_LANGUAGES, VoiceSettings } from '@/types/waste'
+import { ClassificationResult, ChatMessage, VoiceSettings } from '@/types/waste'
 import { translateText, getVoiceSettings, translations } from '@/lib/translations'
 import { getRandomAnimation } from '@/lib/animations'
+import { SupportedLanguage } from '@/types/languages'
 import DashboardLayout from '@/components/DashboardLayout'
 
 // Import components
@@ -26,7 +27,7 @@ export default function RecyclingAssistant() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [inputMessage, setInputMessage] = useState('')
-  const [selectedLanguage, setSelectedLanguage] = useState('en')
+  const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguage>('en')
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true)
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>({
     enabled: true,
@@ -291,8 +292,11 @@ export default function RecyclingAssistant() {
               <NearbyBins
                 classification={classification}
                 selectedLanguage={selectedLanguage}
-                onLocationPermission={() => {}}
-                onFetchNearbyBins={fetchNearbyBins}
+                userLocation={null}
+                nearbyBins={[]}
+                locationError=""
+                isLocationLoading={false}
+                onRequestLocation={() => {}}
               />
             </div>
             

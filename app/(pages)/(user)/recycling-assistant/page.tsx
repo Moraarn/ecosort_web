@@ -2,9 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { WasteClassifier } from '@/lib/ai/classifier'
-import { type ClassificationResult, ChatMessage, SUPPORTED_LANGUAGES, VoiceSettings } from '@/types/waste'
+import { type ClassificationResult, ChatMessage, VoiceSettings } from '@/types/waste'
 import { translateText, getVoiceSettings, translations } from '@/lib/translations'
-import { uploadImage } from '@/lib/storage'
+import { SupportedLanguage, SUPPORTED_LANGUAGES } from '@/types/languages'
 import DashboardLayout from '@/components/DashboardLayout'
 
 // Import components
@@ -14,7 +14,8 @@ import EducationalContent from '@/components/recycling/EducationalContent'
 import BinGuide from '@/components/recycling/BinGuide'
 import NearbyBins from '@/components/recycling/NearbyBins'
 import Chatbot from '@/components/recycling/Chatbot'
-import ClassificationHistory from '@/components/recycling/ClassificationHistory'
+import { LanguageSelector } from '@/components/ui/language-selector'
+
 
 export default function RecyclingAssistant() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
@@ -23,7 +24,7 @@ export default function RecyclingAssistant() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [inputMessage, setInputMessage] = useState('')
-  const [selectedLanguage, setSelectedLanguage] = useState('en')
+  const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguage>('en')
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true)
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>({
     enabled: true,
@@ -33,12 +34,20 @@ export default function RecyclingAssistant() {
     volume: 1
   })
   
+  // Location state
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [locationError, setLocationError] = useState<string>('')
+  const [nearbyBins, setNearbyBins] = useState<any[]>([])
+  const [isLocationLoading, setIsLocationLoading] = useState(false)
+  
   const fileInputRef = useRef<HTMLInputElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const classifier = WasteClassifier.getInstance()
 
   useEffect(() => {
     classifier.initialize()
+    // Request user location on component mount
+    requestUserLocation()
   }, [])
 
   const handleImageSelect = (file: File) => {
@@ -69,35 +78,22 @@ export default function RecyclingAssistant() {
       const result = await classifier.classifyImage(selectedImage)
       setClassification(result)
       
-      // Upload image to Supabase storage
-      const imageUrl = await uploadImage(selectedImage, 'current-user') // You'll need to get actual user ID
-      
-      // Save classification to database
-      await fetch('/api/user/classification-history', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          image_url: imageUrl,
-          classification_result: result
-        })
-      })
-      
       // Add assistant message with classification result
       const categoryName = result.category?.name || 'Unknown Waste'
-      const instructions = translateText(result.category?.disposal_instructions || 'Follow standard waste disposal guidelines', selectedLanguage)
+      const instructions = translateText(result.category?.disposal_instructions || 'Follow standard waste disposal guidelines', selectedLanguage as SupportedLanguage)
       
       // Create educational message content
-      let messageContent = `${translateText('I classified this as', selectedLanguage)} ${categoryName} ${translateText('with', selectedLanguage)} ${Math.round(result.confidence * 100)}% ${translateText('confidence', selectedLanguage)}. ${instructions}`
+      let messageContent = `${translateText('I classified this as', selectedLanguage as SupportedLanguage)} ${categoryName} ${translateText('with', selectedLanguage as SupportedLanguage)} ${Math.round(result.confidence * 100)}% ${translateText('confidence', selectedLanguage as SupportedLanguage)}. ${instructions}`
       
       // Add educational content if available
       if (result.educationalContent) {
         const edu = result.educationalContent
-        messageContent += `\n\n📚 ${translateText('Educational Information', selectedLanguage)}:\n`
-        messageContent += `• ${translateText('Type', selectedLanguage)}: ${edu.wasteType}\n`
-        messageContent += `• ${translateText('Recyclable', selectedLanguage)}: ${edu.recyclable ? '✅ Yes' : '❌ No'}\n`
-        messageContent += `• ${translateText('Environmental Impact', selectedLanguage)}: ${edu.environmentalImpact}\n`
-        messageContent += `• ${translateText('Fun Fact', selectedLanguage)}: ${edu.funFact}\n`
-        messageContent += `• ${translateText('Eco Alternatives', selectedLanguage)}: ${edu.alternatives}`
+        messageContent += `\n\n📚 ${translateText('Educational Information', selectedLanguage as SupportedLanguage)}:\n`
+        messageContent += `• ${translateText('Type', selectedLanguage as SupportedLanguage)}: ${edu.wasteType}\n`
+        messageContent += `• ${translateText('Recyclable', selectedLanguage as SupportedLanguage)}: ${edu.recyclable ? '✅ Yes' : '❌ No'}\n`
+        messageContent += `• ${translateText('Environmental Impact', selectedLanguage as SupportedLanguage)}: ${edu.environmentalImpact}\n`
+        messageContent += `• ${translateText('Fun Fact', selectedLanguage as SupportedLanguage)}: ${edu.funFact}\n`
+        messageContent += `• ${translateText('Eco Alternatives', selectedLanguage as SupportedLanguage)}: ${edu.alternatives}`
       }
       
       const assistantMessage: ChatMessage = {
@@ -132,7 +128,7 @@ export default function RecyclingAssistant() {
       // Cancel any ongoing speech
       speechSynthesis.cancel()
       
-      const utterance = getVoiceSettings(selectedLanguage)
+      const utterance = getVoiceSettings(selectedLanguage as SupportedLanguage)
       utterance.text = text
       utterance.rate = voiceSettings.rate
       utterance.pitch = voiceSettings.pitch
@@ -231,6 +227,48 @@ export default function RecyclingAssistant() {
     stopSpeaking()
   }
 
+  const requestUserLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported by your browser')
+      return
+    }
+
+    setIsLocationLoading(true)
+    setLocationError('')
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords
+        setUserLocation({ lat: latitude, lng: longitude })
+        setIsLocationLoading(false)
+        
+        // Fetch nearby bins when location is obtained
+        fetchNearbyBins(latitude, longitude)
+      },
+      (error) => {
+        setIsLocationLoading(false)
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            setLocationError('Location permission denied. Please enable location access to find nearby bins.')
+            break
+          case error.POSITION_UNAVAILABLE:
+            setLocationError('Location information is unavailable.')
+            break
+          case error.TIMEOUT:
+            setLocationError('Location request timed out.')
+            break
+          default:
+            setLocationError('An unknown error occurred while requesting location.')
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000 // 5 minutes
+      }
+    )
+  }
+
   const fetchNearbyBins = async (latitude: number, longitude: number, wasteType?: string) => {
     try {
       const response = await fetch('/api/bins/nearby', {
@@ -246,9 +284,11 @@ export default function RecyclingAssistant() {
 
       const data = await response.json()
       // Update the nearby bins state in the component
+      setNearbyBins(data.bins || [])
       console.log('Nearby bins fetched:', data.bins)
     } catch (error) {
       console.error('Failed to fetch nearby bins:', error)
+      setNearbyBins([])
     }
   }
 
@@ -257,12 +297,20 @@ export default function RecyclingAssistant() {
       <div className="container mx-auto p-6 max-w-7xl">
 
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-green-800 mb-2">
-            {translateText('eco.sort.assistant', selectedLanguage)}
-          </h1>
-          <p className="text-gray-600">
-            {translateText('ai.powered.classification', selectedLanguage)}
-          </p>
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h1 className="text-3xl font-bold text-green-800 mb-2">
+                {translateText('eco.sort.assistant', selectedLanguage as SupportedLanguage)}
+              </h1>
+              <p className="text-gray-600">
+                {translateText('ai.powered.classification', selectedLanguage as SupportedLanguage)}
+              </p>
+            </div>
+            <LanguageSelector
+              selectedLanguage={selectedLanguage}
+              onLanguageChange={setSelectedLanguage}
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -293,9 +341,7 @@ export default function RecyclingAssistant() {
               voiceSettings={voiceSettings}
               onInputChange={setInputMessage}
               onSendMessage={sendMessage}
-              onToggleVoice={() => setIsVoiceEnabled(!isVoiceEnabled)}
-              onLanguageChange={setSelectedLanguage}
-            />
+              onToggleVoice={() => setIsVoiceEnabled(!isVoiceEnabled)} onLanguageChange={setSelectedLanguage}            />
           </div>
         </div>
 
@@ -309,22 +355,16 @@ export default function RecyclingAssistant() {
               <NearbyBins
                 classification={classification}
                 selectedLanguage={selectedLanguage}
-                onLocationPermission={() => {}}
-                onFetchNearbyBins={fetchNearbyBins}
+                userLocation={userLocation}
+                nearbyBins={nearbyBins}
+                locationError={locationError}
+                isLocationLoading={isLocationLoading}
+                onRequestLocation={requestUserLocation}
               />
             </div>
             
             {/* Full Width Bin Guide */}
             <BinGuide selectedLanguage={selectedLanguage} />
-            
-            {/* Classification History */}
-            <ClassificationHistory 
-              selectedLanguage={selectedLanguage}
-              onClassificationSelect={(classification) => {
-                // Handle classification selection if needed
-                console.log('Selected classification:', classification)
-              }}
-            />
           </div>
         )}
       </div>

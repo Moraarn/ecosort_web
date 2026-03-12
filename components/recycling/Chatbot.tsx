@@ -6,17 +6,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Volume2, VolumeX, Send, Languages } from 'lucide-react'
 import { ChatMessage } from '@/types/waste'
 import { translateText, getVoiceSettings } from '@/lib/translations'
+import { SupportedLanguage } from '@/types/languages'
+import { LanguageSelector } from '@/components/ui/language-selector'
 
 interface ChatbotProps {
   messages: ChatMessage[]
   inputMessage: string
-  selectedLanguage: string
+  selectedLanguage: SupportedLanguage
   isVoiceEnabled: boolean
   voiceSettings: any
   onInputChange: (value: string) => void
   onSendMessage: () => void
   onToggleVoice: () => void
-  onLanguageChange: (language: string) => void
+  onLanguageChange: (language: SupportedLanguage) => void
 }
 
 export default function Chatbot({
@@ -82,14 +84,11 @@ export default function Chatbot({
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Recycling Chatbot</CardTitle>
         <div className="flex items-center gap-2">
-          <select
-            value={selectedLanguage}
-            onChange={(e) => onLanguageChange(e.target.value)}
-            className="text-sm border rounded px-2 py-1"
-          >
-            <option value="en">English</option>
-            <option value="sw">Swahili</option>
-          </select>
+          <LanguageSelector
+            selectedLanguage={selectedLanguage}
+            onLanguageChange={onLanguageChange}
+            className="text-sm"
+          />
           <Button
             variant="outline"
             size="sm"

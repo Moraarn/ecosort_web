@@ -3,11 +3,17 @@
 import { useState } from "react"
 import DashboardLayout from "@/components/DashboardLayout"
 
+interface Popup {
+  show: boolean
+  type: 'success' | 'failure'
+  message: string
+  rewardTitle: string
+}
+
 export default function Rewards() {
   const [activeTab, setActiveTab] = useState("available")
-  const [userPoints] = useState(2450)
-
-  const availableRewards = [
+  const [userPoints, setUserPoints] = useState(2450)
+  const [availableRewards, setAvailableRewards] = useState([
     {
       id: 1,
       title: "Coffee Shop Voucher",
@@ -92,9 +98,8 @@ export default function Rewards() {
       expiry: "30 days",
       partner: "FitGreen Gym"
     }
-  ]
-
-  const redeemedRewards = [
+  ])
+  const [redeemedRewards, setRedeemedRewards] = useState([
     {
       id: 7,
       title: "Reusable Water Bottle",
@@ -121,7 +126,13 @@ export default function Rewards() {
       ),
       partner: "City Bikes"
     }
-  ]
+  ])
+  const [popup, setPopup] = useState<Popup>({
+    show: false,
+    type: 'success',
+    message: '',
+    rewardTitle: ''
+  })
 
   const getCategoryColor = (category: string) => {
     const colors: { [key: string]: string } = {
@@ -133,6 +144,43 @@ export default function Rewards() {
       "Health & Fitness": "bg-green-100 text-green-800"
     }
     return colors[category] || "bg-gray-100 text-gray-800"
+  }
+
+  const handleRedeem = (reward: typeof availableRewards[0]) => {
+    // Simulate API call with random success/failure
+    const isSuccess = Math.random() > 0.2 // 80% success rate
+
+    if (isSuccess && userPoints >= reward.points) {
+      // Success: deduct points and move to redeemed rewards
+      setUserPoints(userPoints - reward.points)
+      setAvailableRewards(availableRewards.filter(r => r.id !== reward.id))
+      setRedeemedRewards([{
+        ...reward,
+        redeemedDate: new Date().toISOString().split('T')[0]
+      }, ...redeemedRewards])
+      
+      setPopup({
+        show: true,
+        type: 'success',
+        message: `Congratulations! You've successfully redeemed ${reward.title}.`,
+        rewardTitle: reward.title
+      })
+    } else {
+      // Failure: show error message
+      setPopup({
+        show: true,
+        type: 'failure',
+        message: userPoints >= reward.points 
+          ? 'Sorry, something went wrong. Please try again.'
+          : 'Insufficient points to redeem this reward.',
+        rewardTitle: reward.title
+      })
+    }
+
+    // Auto-hide popup after 3 seconds
+    setTimeout(() => {
+      setPopup(prev => ({ ...prev, show: false }))
+    }, 3000)
   }
 
   return (
@@ -218,6 +266,7 @@ export default function Rewards() {
                       <p className="text-xs text-gray-500">points</p>
                     </div>
                     <button 
+                      onClick={() => handleRedeem(reward)}
                       className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-xs sm:text-sm ${
                         userPoints >= reward.points
                           ? "bg-green-600 hover:bg-green-700 text-white"
@@ -273,6 +322,52 @@ export default function Rewards() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Success/Failure Popup */}
+        {popup.show && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl p-6 max-w-sm mx-4 transform transition-all">
+              <div className="flex items-center justify-center mb-4">
+                {popup.type === 'success' ? (
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                    <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+                    <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+              
+              <h3 className={`text-lg font-semibold text-center mb-2 ${
+                popup.type === 'success' ? 'text-green-800' : 'text-red-800'
+              }`}>
+                {popup.type === 'success' ? 'Redemption Successful!' : 'Redemption Failed'}
+              </h3>
+              
+              <p className="text-gray-600 text-center text-sm mb-4">
+                {popup.message}
+              </p>
+              
+              <div className="text-center">
+                <button
+                  onClick={() => setPopup(prev => ({ ...prev, show: false }))}
+                  className={`px-4 py-2 rounded-lg font-medium text-sm ${
+                    popup.type === 'success' 
+                      ? 'bg-green-600 hover:bg-green-700 text-white'
+                      : 'bg-red-600 hover:bg-red-700 text-white'
+                  }`}
+                >
+                  {popup.type === 'success' ? 'Great!' : 'Try Again'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

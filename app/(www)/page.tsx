@@ -2,6 +2,7 @@ import Navbar from "../../components/navbar";
 import HeroSection from "../../components/HeroSection";
 import FeaturesGrid from "../../components/FeaturesGrid";
 import HowItWorks from "../../components/HowItWorks";
+import USSDSection from "../../components/USSDSection";
 import ImageShowcase from "../../components/ImageShowcase";
 import ImpactStats from "../../components/ImpactStats";
 import CTASection from "../../components/CTASection";
@@ -14,7 +15,7 @@ export default function Home() {
       <HeroSection />
       <HowItWorks />
       <FeaturesGrid />
-
+      <USSDSection />
       <ImageShowcase />
       <ImpactStats />
       <CTASection />

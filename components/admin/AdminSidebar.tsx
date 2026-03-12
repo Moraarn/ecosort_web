@@ -79,6 +79,15 @@ export default function AdminSidebar({ children }: AdminSidebarProps) {
       )
     },
     { 
+      href: "/admin/ussd-demo", 
+      label: "USSD Demo", 
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 00.502.861l1.498-4.493A1 1 0 018.28 3H5a2 2 0 01-2-2zm5.03 4.5a1 1 0 001.054-.223l2.148-6.428a1 1 0 00-.954-.697l-2.148 6.428a1 1 0 001.054.223zm5.03-4.5a1 1 0 001.054-.223l2.148-6.428a1 1 0 00-.954-.697l-2.148 6.428a1 1 0 001.054.223z" />
+        </svg>
+      )
+    },
+    { 
       href: "/admin/reports", 
       label: "Reports", 
       icon: (
