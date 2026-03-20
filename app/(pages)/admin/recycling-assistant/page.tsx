@@ -41,6 +41,14 @@ export default function RecyclingAssistant() {
   const [showAnimation, setShowAnimation] = useState(false)
   const [animationUrl, setAnimationUrl] = useState('')
   
+  // Speech recognition state
+  const [isListening, setIsListening] = useState(false)
+  const [recognitionError, setRecognitionError] = useState<string>('')
+  const [retryCount, setRetryCount] = useState(0)
+  const [speechAvailable, setSpeechAvailable] = useState<boolean | null>(null)
+  const [isRetrying, setIsRetrying] = useState(false)
+  const recognitionRef = useRef<any>(null)
+  
   const fileInputRef = useRef<HTMLInputElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const classifier = WasteClassifier.getInstance()
@@ -242,6 +250,121 @@ export default function RecyclingAssistant() {
     setInputMessage('')
   }
 
+  const initializeSpeechRecognition = () => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+      
+      if (!SpeechRecognitionAPI) {
+        console.warn('Speech recognition not supported in this browser')
+        setRecognitionError('Speech recognition is not supported in your browser')
+        setSpeechAvailable(false)
+        return
+      }
+      
+      const isCheckingAvailability = speechAvailable === false
+      
+      const recognition = new SpeechRecognitionAPI()
+      
+      recognition.continuous = false
+      recognition.interimResults = false
+      recognition.lang = selectedLanguage === 'sw' ? 'sw-KE' : 'en-US'
+      
+      recognition.onstart = () => {
+        setIsListening(true)
+        setRecognitionError('')
+        setRetryCount(0)
+        setSpeechAvailable(true)
+        setIsRetrying(false)
+      }
+      
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript
+        setInputMessage(transcript)
+        setIsListening(false)
+        setRetryCount(0)
+        setRecognitionError('')
+        setSpeechAvailable(true)
+        setIsRetrying(false)
+      }
+      
+      recognition.onerror = (event: any) => {
+        setIsListening(false)
+        let errorMessage = 'Speech recognition error'
+        
+        switch (event.error) {
+          case 'no-speech':
+            errorMessage = 'No speech detected. Please try again.'
+            break
+          case 'audio-capture':
+            errorMessage = 'Microphone not found. Please check your microphone.'
+            setSpeechAvailable(false)
+            break
+          case 'not-allowed':
+            errorMessage = 'Microphone access denied. Please allow microphone access.'
+            setSpeechAvailable(false)
+            break
+          case 'network':
+            errorMessage = 'Network error. Please check your connection.'
+            setSpeechAvailable(false)
+            break
+          case 'service-not-allowed':
+            errorMessage = 'Speech recognition service not available.'
+            setSpeechAvailable(false)
+            break
+          default:
+            errorMessage = `Speech recognition error: ${event.error}`
+        }
+        
+        if (!isCheckingAvailability) {
+          setRecognitionError(errorMessage)
+          
+          if (speechAvailable === true) {
+            setTimeout(() => {
+              setRecognitionError('')
+            }, 5000)
+          }
+        }
+      }
+      
+      recognitionRef.current = recognition
+      
+      if (!isCheckingAvailability) {
+        setSpeechAvailable(true)
+      }
+    }
+  }
+
+  const toggleListening = () => {
+    if (speechAvailable === false) {
+      setSpeechAvailable(null)
+      setRetryCount(0)
+      setRecognitionError('')
+      setIsRetrying(false)
+      initializeSpeechRecognition()
+      return
+    }
+    
+    if (!recognitionRef.current) {
+      initializeSpeechRecognition()
+      return
+    }
+    
+    if (isRetrying) {
+      return
+    }
+    
+    if (isListening) {
+      recognitionRef.current.stop()
+    } else {
+      try {
+        recognitionRef.current.start()
+      } catch (error) {
+        console.error('Start failed:', error)
+        initializeSpeechRecognition()
+      }
+    }
+  }
+
   const resetSession = () => {
     setSelectedImage(null)
     setImagePreview('')
@@ -317,9 +440,15 @@ export default function RecyclingAssistant() {
               selectedLanguage={selectedLanguage}
               isVoiceEnabled={isVoiceEnabled}
               voiceSettings={voiceSettings}
+              isListening={isListening}
+              recognitionError={recognitionError}
+              retryCount={retryCount}
+              speechAvailable={speechAvailable}
+              isRetrying={isRetrying}
               onInputChange={setInputMessage}
               onSendMessage={sendMessage}
               onToggleVoice={toggleVoice}
+              onToggleListening={toggleListening}
               onLanguageChange={setSelectedLanguage}
             />
           </div>

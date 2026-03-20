@@ -40,6 +40,14 @@ export default function RecyclingAssistant() {
   const [nearbyBins, setNearbyBins] = useState<any[]>([])
   const [isLocationLoading, setIsLocationLoading] = useState(false)
   
+  // Speech recognition state
+  const [isListening, setIsListening] = useState(false)
+  const [recognitionError, setRecognitionError] = useState<string>('')
+  const [retryCount, setRetryCount] = useState(0)
+  const [speechAvailable, setSpeechAvailable] = useState<boolean | null>(null)
+  const [isRetrying, setIsRetrying] = useState(false)
+  const recognitionRef = useRef<any>(null)
+  
   const fileInputRef = useRef<HTMLInputElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const classifier = WasteClassifier.getInstance()
@@ -48,6 +56,8 @@ export default function RecyclingAssistant() {
     classifier.initialize()
     // Request user location on component mount
     requestUserLocation()
+    // Initialize speech recognition
+    initializeSpeechRecognition()
   }, [])
 
   // Refetch nearby bins when classification changes
@@ -189,6 +199,196 @@ export default function RecyclingAssistant() {
       speechSynthesis.cancel()
     }
   }
+
+  const initializeSpeechRecognition = () => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+      
+      if (!SpeechRecognitionAPI) {
+        console.warn('Speech recognition not supported in this browser')
+        setRecognitionError('Speech recognition is not supported in your browser')
+        setSpeechAvailable(false)
+        return
+      }
+      
+      // If we're just checking availability (from periodic check), don't show errors
+      const isCheckingAvailability = speechAvailable === false
+      
+      const recognition = new SpeechRecognitionAPI()
+      
+      recognition.continuous = false
+      recognition.interimResults = false
+      recognition.lang = selectedLanguage === 'sw' ? 'sw-KE' : 'en-US'
+      
+      recognition.onstart = () => {
+        setIsListening(true)
+        setRecognitionError('')
+        setRetryCount(0) // Reset retry count when starting new session
+        setSpeechAvailable(true)
+        setIsRetrying(false)
+      }
+      
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript
+        setInputMessage(transcript)
+        setIsListening(false)
+        setRetryCount(0) // Reset retry count on success
+        setRecognitionError('') // Clear any existing errors
+        setSpeechAvailable(true) // Re-enable speech on successful recognition
+        setIsRetrying(false)
+        
+        // Auto-send message after speech recognition
+        setTimeout(() => {
+          if (transcript.trim()) {
+            sendMessage()
+          }
+        }, 500)
+      }
+      
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error)
+        setIsListening(false)
+        
+        // Handle specific error types with user-friendly messages
+        let errorMessage = 'Speech recognition error'
+        
+        switch (event.error) {
+          case 'network':
+            // Immediately disable speech recognition on network error
+            if (!isCheckingAvailability) {
+              errorMessage = 'Speech recognition service is currently unavailable. Using text input instead.'
+            }
+            setSpeechAvailable(false)
+            setRetryCount(0)
+            setIsRetrying(false)
+            break
+          case 'not-allowed':
+            if (!isCheckingAvailability) {
+              errorMessage = 'Microphone access denied. Please allow microphone access in your browser settings.'
+            }
+            setSpeechAvailable(false)
+            setRetryCount(0)
+            setIsRetrying(false)
+            break
+          case 'no-speech':
+            if (!isCheckingAvailability) {
+              errorMessage = 'No speech detected. Please try speaking clearly.'
+            }
+            setRetryCount(0)
+            setIsRetrying(false)
+            break
+          case 'audio-capture':
+            if (!isCheckingAvailability) {
+              errorMessage = 'No microphone found. Please ensure a microphone is connected.'
+            }
+            setSpeechAvailable(false)
+            setRetryCount(0)
+            setIsRetrying(false)
+            break
+          case 'aborted':
+            errorMessage = 'Speech recognition was stopped.'
+            setRetryCount(0)
+            setIsRetrying(false)
+            break
+          case 'service-not-allowed':
+            if (!isCheckingAvailability) {
+              errorMessage = 'Speech recognition service is not available. Using text input instead.'
+            }
+            setSpeechAvailable(false)
+            setRetryCount(0)
+            setIsRetrying(false)
+            break
+          default:
+            if (!isCheckingAvailability) {
+              errorMessage = `Speech recognition error: ${event.error}`
+            }
+            setRetryCount(0)
+            setIsRetrying(false)
+        }
+        
+        if (!isCheckingAvailability) {
+          setRecognitionError(errorMessage)
+          
+          // Auto-clear error after 5 seconds for non-critical errors
+          if (speechAvailable === true) {
+            setTimeout(() => {
+              setRecognitionError('')
+            }, 5000)
+          }
+        }
+      }
+      
+      recognition.onend = () => {
+        setIsListening(false)
+        setIsRetrying(false)
+      }
+      
+      recognitionRef.current = recognition
+      
+      // Only set speechAvailable to true if we're not in a checking state
+      if (!isCheckingAvailability) {
+        setSpeechAvailable(true)
+      }
+    }
+  }
+
+  const toggleListening = () => {
+    // If speech was marked as unavailable, try to re-initialize it
+    if (speechAvailable === false) {
+      setSpeechAvailable(null)
+      setRetryCount(0)
+      setRecognitionError('')
+      setIsRetrying(false)
+      initializeSpeechRecognition()
+      return
+    }
+    
+    if (!recognitionRef.current) {
+      initializeSpeechRecognition()
+      return
+    }
+    
+    if (isRetrying) {
+      // Don't allow toggle while retrying
+      return
+    }
+    
+    if (isListening) {
+      recognitionRef.current.stop()
+    } else {
+      try {
+        recognitionRef.current.start()
+      } catch (error) {
+        console.error('Start failed:', error)
+        // Re-initialize if start fails
+        initializeSpeechRecognition()
+      }
+    }
+  }
+
+  const updateRecognitionLanguage = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.lang = selectedLanguage === 'sw' ? 'sw-KE' : 'en-US'
+    }
+  }
+
+  useEffect(() => {
+    updateRecognitionLanguage()
+  }, [selectedLanguage])
+
+  // Periodic check for speech availability recovery
+  useEffect(() => {
+    if (speechAvailable === false) {
+      const interval = setInterval(() => {
+        // Try to re-initialize speech recognition every 30 seconds
+        console.log('Checking if speech recognition is available again...')
+        setSpeechAvailable(null) // Reset to null to re-check
+        initializeSpeechRecognition()
+      }, 30000)
+
+      return () => clearInterval(interval)
+    }
+  }, [speechAvailable])
 
   const sendMessage = async () => {
     if (!inputMessage.trim()) return
@@ -361,9 +561,15 @@ export default function RecyclingAssistant() {
               selectedLanguage={selectedLanguage}
               isVoiceEnabled={isVoiceEnabled}
               voiceSettings={voiceSettings}
+              isListening={isListening}
+              recognitionError={recognitionError}
+              retryCount={retryCount}
+              speechAvailable={speechAvailable}
+              isRetrying={isRetrying}
               onInputChange={setInputMessage}
               onSendMessage={sendMessage}
               onToggleVoice={toggleVoice}
+              onToggleListening={toggleListening}
               onLanguageChange={setSelectedLanguage}
             />
           </div>
@@ -374,6 +580,17 @@ export default function RecyclingAssistant() {
           <div className="mt-6 space-y-6">
             {/* Horizontal Layout for Educational Content and Nearby Bins */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {isListening && (
+                <div className="mt-2 p-2 bg-blue-100 border border-blue-300 rounded text-blue-700 text-sm flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                  Listening... Speak now!
+                  {retryCount > 0 && (
+                    <span className="text-xs bg-blue-200 px-2 py-1 rounded">
+                      Retry {retryCount}/3
+                    </span>
+                  )}
+                </div>
+              )}
               <EducationalContent classification={classification} />
               
               <NearbyBins
