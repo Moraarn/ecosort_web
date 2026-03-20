@@ -50,6 +50,13 @@ export default function RecyclingAssistant() {
     requestUserLocation()
   }, [])
 
+  // Refetch nearby bins when classification changes
+  useEffect(() => {
+    if (userLocation && classification?.category?.name) {
+      fetchNearbyBins(userLocation.lat, userLocation.lng, classification.category.name)
+    }
+  }, [classification, userLocation])
+
   const handleImageSelect = (file: File) => {
     if (file && file.type.startsWith('image/')) {
       setSelectedImage(file)
@@ -124,6 +131,11 @@ export default function RecyclingAssistant() {
   }
 
   const speakText = (text: string) => {
+    // Don't speak if voice is disabled
+    if (!isVoiceEnabled) {
+      return
+    }
+    
     if ('speechSynthesis' in window) {
       // Cancel any ongoing speech
       speechSynthesis.cancel()
@@ -159,6 +171,16 @@ export default function RecyclingAssistant() {
       }
     } else {
       console.warn('Speech synthesis not supported in this browser')
+    }
+  }
+
+  const toggleVoice = () => {
+    const newVoiceState = !isVoiceEnabled
+    setIsVoiceEnabled(newVoiceState)
+    
+    // If turning off voice, stop any ongoing speech
+    if (!newVoiceState) {
+      stopSpeaking()
     }
   }
 
@@ -341,7 +363,9 @@ export default function RecyclingAssistant() {
               voiceSettings={voiceSettings}
               onInputChange={setInputMessage}
               onSendMessage={sendMessage}
-              onToggleVoice={() => setIsVoiceEnabled(!isVoiceEnabled)} onLanguageChange={setSelectedLanguage}            />
+              onToggleVoice={toggleVoice}
+              onLanguageChange={setSelectedLanguage}
+            />
           </div>
         </div>
 

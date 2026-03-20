@@ -52,18 +52,60 @@ const recyclingKnowledge = {
   }
 }
 
-function findAnswer(query: string, language: string): { answer: string, category: string } {
+function findRecyclingAnswer(query: string, language: string): { answer: string, category: string } | null {
   const knowledge = recyclingKnowledge[language as keyof typeof recyclingKnowledge] || recyclingKnowledge.en
   const lowerQuery = query.toLowerCase()
   
-  // Check for specific keywords
+  // Check for specific recycling keywords
   for (const [key, value] of Object.entries(knowledge)) {
-    if (key !== 'default' && lowerQuery.includes(key)) {
+    if (lowerQuery.includes(key)) {
       return value
     }
   }
   
-  return knowledge.default
+  return null
+}
+
+async function callOpenAI(message: string, context?: string, language: string = 'en'): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY
+  
+  if (!apiKey) {
+    throw new Error('OpenAI API key not configured')
+  }
+
+  const systemPrompt = language === 'sw' 
+    ? `Wewe ni msaada wa kipekee wa kupanga taka kwa EcoSort AI. Unajibu maswali kuhusu usimamizi wa taka, upangaji, na mazingira. Unatoa majibu mafupi na ya manufaa. Ikiwa swala halihusiani na usimamizi wa taka, jibu kwa njia ya kirafiki lakini rejesha mada kwa mazingira.`
+    : `You are a helpful waste management assistant for EcoSort AI. You answer questions about waste management, recycling, and environmental topics. Provide concise, helpful responses. If the question is not related to waste management, answer helpfully but try to bring it back to environmental context.`
+
+  const contextPrompt = context 
+    ? `${language === 'sw' ? 'Mada ya sasa:' : 'Current context:'} ${context}. `
+    : ''
+
+  const userPrompt = `${contextPrompt}${message}`
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-3.5-turbo',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      max_tokens: 150,
+      temperature: 0.7
+    })
+  })
+
+  if (!response.ok) {
+    throw new Error(`OpenAI API error: ${response.statusText}`)
+  }
+
+  const data = await response.json()
+  return data.choices[0]?.message?.content || 'Sorry, I could not process your request.'
 }
 
 export async function POST(request: NextRequest) {
@@ -74,30 +116,52 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 })
     }
 
-    // Find answer based on keywords
-    const result = findAnswer(message, language)
+    let response: string
+    let category: string = 'general'
+
+    // First check if it's a specific recycling question
+    const recyclingAnswer = findRecyclingAnswer(message, language)
     
-    // Log the interaction for analytics (only if Supabase is available)
+    if (recyclingAnswer) {
+      // Use recycling knowledge base for specific questions
+      response = recyclingAnswer.answer
+      category = recyclingAnswer.category
+    } else {
+      // Use OpenAI for general conversation
+      try {
+        response = await callOpenAI(message, context, language)
+        category = 'ai-assisted'
+      } catch (openaiError) {
+        console.error('OpenAI API error:', openaiError)
+        // Fallback to default recycling advice if OpenAI fails
+        const fallbackKnowledge = recyclingKnowledge[language as keyof typeof recyclingKnowledge] || recyclingKnowledge.en
+        response = fallbackKnowledge.default?.answer || 'I apologize, but I\'m having trouble connecting to my AI service. For proper recycling guidance, please identify the material type and check your local recycling guidelines.'
+        category = 'fallback'
+      }
+    }
+    
+    // Log to database if available
     try {
       const supabase = await createServerClient()
       await (supabase
         .from('chatbot_logs') as any)
         .insert({
           user_message: message,
-          bot_response: result.answer,
+          bot_response: response,
           language: language,
           context: context,
+          category: category,
           created_at: new Date().toISOString()
         })
     } catch (dbError) {
-      // Log error but don't fail the response - chatbot works without database
       console.log('Chatbot logging skipped (database unavailable):', (dbError as Error).message)
     }
 
     return NextResponse.json({
-      response: result.answer,
-      category: result.category,
-      language: language
+      response,
+      category,
+      language,
+      source: recyclingAnswer ? 'knowledge-base' : 'openai'
     })
 
   } catch (error) {

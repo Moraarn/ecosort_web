@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,69 +11,90 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = await createServerClient()
+    // Mock data for demonstration - replace with actual database query
+    const mockBins = [
+      {
+        id: 'bin_001',
+        name: 'EcoSort Station - Central Park',
+        address: '123 Central Avenue, Nairobi',
+        latitude: latitude + 0.001,
+        longitude: longitude + 0.001,
+        distance: 150,
+        waste_type: 'Recyclables',
+        status: 'active',
+        bin_color: 'Blue',
+        last_collected: '2024-03-20T08:00:00Z',
+        fill_level: 25,
+        battery_level: 95
+      },
+      {
+        id: 'bin_002',
+        name: 'Green Point - Shopping Mall',
+        address: '456 Mall Road, Nairobi',
+        latitude: latitude - 0.002,
+        longitude: longitude + 0.003,
+        distance: 350,
+        waste_type: 'General Waste',
+        status: 'active',
+        bin_color: 'Gray',
+        last_collected: '2024-03-20T06:30:00Z',
+        fill_level: 60,
+        battery_level: 88
+      },
+      {
+        id: 'bin_003',
+        name: 'Recycling Hub - Market Area',
+        address: '789 Market Street, Nairobi',
+        latitude: latitude + 0.003,
+        longitude: longitude - 0.001,
+        distance: 480,
+        waste_type: 'Organic',
+        status: 'active',
+        bin_color: 'Green',
+        last_collected: '2024-03-20T07:15:00Z',
+        fill_level: 40,
+        battery_level: 92
+      },
+      {
+        id: 'bin_004',
+        name: 'Smart Bin - Residential Complex',
+        address: '321 Estate Drive, Nairobi',
+        latitude: latitude - 0.001,
+        longitude: longitude - 0.002,
+        distance: 620,
+        waste_type: 'Recyclables',
+        status: 'active',
+        bin_color: 'Blue',
+        last_collected: '2024-03-20T09:00:00Z',
+        fill_level: 15,
+        battery_level: 98
+      },
+      {
+        id: 'bin_005',
+        name: 'Eco Station - Business District',
+        address: '555 Corporate Plaza, Nairobi',
+        latitude: latitude + 0.004,
+        longitude: longitude + 0.002,
+        distance: 850,
+        waste_type: 'Hazardous',
+        status: 'maintenance',
+        bin_color: 'Red',
+        last_collected: '2024-03-19T16:00:00Z',
+        fill_level: 80,
+        battery_level: 45
+      }
+    ]
 
-    // Query for nearby QR locations (bins)
-    let query = (supabase
-      .from('qr_locations') as any)
-      .select(`
-        *,
-        bins!inner(
-          *,
-          bin_status!inner(
-            *
-          )
-        ),
-        waste_categories!inner(
-          *
-        )
-      `)
-      .eq('status', 'active')
-
-    // Add waste type filter if specified
+    // Filter by waste type if specified
+    let filteredBins = mockBins
     if (wasteType && wasteType !== 'all') {
-      query = query.eq('waste_categories.name', wasteType)
-    }
-
-    const { data: locations, error } = await query
-
-    if (error) {
-      console.error('Database error:', error)
-      return NextResponse.json(
-        { error: 'Failed to fetch bin locations' },
-        { status: 500 }
+      filteredBins = mockBins.filter(bin => 
+        bin.waste_type.toLowerCase().includes(wasteType.toLowerCase())
       )
     }
 
-    if (!locations || locations.length === 0) {
-      return NextResponse.json({ bins: [] })
-    }
-
-    // Calculate distances and filter by radius
-    const nearbyBins = locations
-      .map((location: any) => {
-        const distance = calculateDistance(
-          latitude,
-          longitude,
-          (location as any).latitude,
-          (location as any).longitude
-        )
-
-        return {
-          id: location.id,
-          name: (location as any).location_name || `Bin ${location.id.slice(-4)}`,
-          address: (location as any).address || 'Address not available',
-          latitude: (location as any).latitude,
-          longitude: (location as any).longitude,
-          distance: Math.round(distance),
-          waste_type: location.waste_categories?.name || 'General',
-          status: location.status,
-          bin_color: location.waste_categories?.bin_color || 'Gray',
-          last_collected: location.bins?.[0]?.last_collected,
-          fill_level: location.bins?.[0]?.bin_status?.[0]?.fill_level_percentage || 0,
-          battery_level: location.bins?.[0]?.bin_status?.[0]?.battery_level || 100
-        }
-      })
+    // Filter by radius and sort by distance
+    const nearbyBins = filteredBins
       .filter((bin: any) => bin.distance <= radius)
       .sort((a: any, b: any) => a.distance - b.distance)
 
@@ -87,16 +107,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
-
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371000 // Earth's radius in meters
-  const dLat = (lat2 - lat1) * Math.PI / 180
-  const dLon = (lon2 - lon1) * Math.PI / 180
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2)
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-  return R * c
 }
