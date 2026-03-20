@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react"
 import GoogleMap from "@/components/GoogleMap"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 
 interface AddBinModalProps {
   isOpen: boolean
@@ -116,33 +118,50 @@ export default function AddBinModal({ isOpen, onClose, onSave, saving }: AddBinM
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] flex flex-col">
-        <div className="p-6 border-b border-gray-200 flex-shrink-0">
-          <h2 className="text-xl font-semibold text-gray-900">Add New Smart Bin</h2>
-          <p className="text-sm text-gray-600 mt-1">Enter bin details and select location on map</p>
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+      <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-4xl mx-auto max-h-[90vh] flex flex-col border border-gray-200/50 animate-in slide-in-from-bottom-4 duration-300">
+        <div className="p-8 border-b border-gray-100 flex-shrink-0 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                Add New Smart Bin
+              </h2>
+              <p className="text-gray-600 mt-2">Enter bin details and select location on map</p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="h-8 w-8 rounded-full hover:bg-gray-100"
+            >
+              ✕
+            </Button>
+          </div>
         </div>
         
-        <div className="p-6 space-y-4 overflow-y-auto flex-1">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Bin Name *</label>
-              <input
-                type="text"
-                value={newBin.name}
-                onChange={(e) => setNewBin({ ...newBin, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="e.g., Downtown Plaza Bin"
-              />
-            </div>
+        <div className="p-8 space-y-6 overflow-y-auto flex-1">
+          <Card className="border-gray-200 shadow-sm">
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">Bin Name *</label>
+                  <input
+                    type="text"
+                    value={newBin.name}
+                    onChange={(e) => setNewBin({ ...newBin, name: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                    placeholder="e.g., Downtown Plaza Bin"
+                  />
+                </div>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Waste Type</label>
-              <select
-                value={newBin.wasteType}
-                onChange={(e) => setNewBin({ ...newBin, wasteType: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              >
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">Waste Type</label>
+                  <select
+                    value={newBin.wasteType}
+                    onChange={(e) => setNewBin({ ...newBin, wasteType: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                  >
                 <option value="Mixed">Mixed</option>
                 <option value="Plastic">Plastic</option>
                 <option value="Paper">Paper</option>
@@ -151,79 +170,106 @@ export default function AddBinModal({ isOpen, onClose, onSave, saving }: AddBinM
                 <option value="Metal">Metal</option>
                 <option value="E-waste">E-waste</option>
               </select>
-            </div>
-          </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
           
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Location Description *</label>
-            <div className="relative">
-              <input
-                type="text"
-                value={newBin.location}
-                onChange={(e) => handleLocationInputChange('location', e.target.value)}
-                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="e.g., Nairobi, Kenya or Kampala, Uganda"
-              />
-              {newBin.geocoding && (
-                <div className="absolute right-3 top-2.5">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+          <Card className="border-gray-200 shadow-sm">
+            <CardContent className="p-6">
+              <label className="block text-sm font-semibold text-gray-700 mb-3">Location Description *</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={newBin.location}
+                  onChange={(e) => handleLocationInputChange('location', e.target.value)}
+                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                  placeholder="e.g., Nairobi, Kenya or Kampala, Uganda"
+                />
+                {newBin.geocoding && (
+                  <div className="absolute right-3 top-3">
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent"></div>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                <span className="w-1 h-1 bg-blue-500 rounded-full"></span>
+                Type a location name - it will be geocoded automatically
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-gray-200 shadow-sm">
+            <CardContent className="p-6">
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                <span className="flex items-center gap-2">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                  Location Selection - Click on map to select precise location
+                </span>
+              </label>
+              <div className="border border-gray-300 rounded-xl overflow-hidden shadow-inner">
+                <GoogleMap 
+                  markers={newBin.selectedLocation ? [{
+                    id: 999,
+                    name: "New Bin Location",
+                    lat: newBin.selectedLocation.lat,
+                    lng: newBin.selectedLocation.lng,
+                    status: "Active",
+                    progress: 0,
+                    wasteType: newBin.wasteType
+                  }] : []}
+                  onMapClick={handleMapClick}
+                  center={newBin.selectedLocation || { lat: -1.2921, lng: 36.8219 }} // Default to Nairobi, Kenya
+                />
+              </div>
+              {newBin.selectedLocation && (
+                <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl animate-in slide-in-from-top-2 duration-200">
+                  <p className="text-sm text-green-800 flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="font-medium">Selected Location:</span>
+                    <span className="font-mono text-xs bg-green-100 px-2 py-1 rounded">
+                      {newBin.selectedLocation.lat.toFixed(6)}, {newBin.selectedLocation.lng.toFixed(6)}
+                    </span>
+                  </p>
                 </div>
               )}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">Type a location name - it will be geocoded automatically</p>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Location Selection - Click on map to select precise location
-            </label>
-            <div className="border border-gray-300 rounded-lg overflow-hidden">
-              <GoogleMap 
-                markers={newBin.selectedLocation ? [{
-                  id: 999,
-                  name: "New Bin Location",
-                  lat: newBin.selectedLocation.lat,
-                  lng: newBin.selectedLocation.lng,
-                  status: "Active",
-                  progress: 0,
-                  wasteType: newBin.wasteType
-                }] : []}
-                onMapClick={handleMapClick}
-                center={newBin.selectedLocation || { lat: -1.2921, lng: 36.8219 }} // Default to Nairobi, Kenya
-              />
-            </div>
-            {newBin.selectedLocation && (
-              <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                <p className="text-sm text-green-800">
-                  <span className="font-medium">Selected Location:</span>
-                  <span className="ml-2">
-                    {newBin.selectedLocation.lat.toFixed(6)}, {newBin.selectedLocation.lng.toFixed(6)}
-                  </span>
-                </p>
-              </div>
-            )}
-            {!newBin.selectedLocation && (
-              <p className="mt-2 text-sm text-gray-500">
-                Type a location name above or click anywhere on the map to set the bin location
-              </p>
-            )}
-          </div>
+              {!newBin.selectedLocation && (
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                  <p className="text-sm text-blue-800 flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                    Type a location name above or click anywhere on the map to set the bin location
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
         
-        <div className="p-6 border-t border-gray-200 flex justify-end space-x-3 flex-shrink-0">
-          <button
+        <div className="p-8 border-t border-gray-100 flex justify-end space-x-3 flex-shrink-0 bg-gray-50/50">
+          <Button
+            variant="outline"
             onClick={onClose}
-            className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+            className="px-6 py-3 rounded-xl hover:bg-gray-100 transition-all duration-200"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSave}
             disabled={saving || !newBin.selectedLocation}
-            className="px-4 py-2 bg-primary hover:bg-gray-900 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
           >
-            {saving ? 'Adding...' : 'Add Bin'}
-          </button>
+            {saving ? (
+              <span className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Adding...
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <span>+</span>
+                Add Bin
+              </span>
+            )}
+          </Button>
         </div>
       </div>
     </div>

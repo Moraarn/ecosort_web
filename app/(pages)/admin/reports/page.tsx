@@ -6,6 +6,7 @@ import AdminSidebar from "@/components/admin/AdminSidebar"
 export default function AdminReports() {
   const [reportType, setReportType] = useState("usage")
   const [dateRange, setDateRange] = useState("7days")
+  const [isGenerating, setIsGenerating] = useState(false)
 
   const reports = [
     {
@@ -74,6 +75,106 @@ export default function AdminReports() {
     return Math.max(...data.map(d => typeof d[key] === 'number' ? d[key] : 0))
   }
 
+  const generateAndDownloadReport = async () => {
+    setIsGenerating(true)
+    
+    try {
+      // Simulate report generation delay
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      // Generate report data based on type
+      let reportData = []
+      let filename = ''
+      let headers = []
+      
+      switch (reportType) {
+        case 'usage':
+          headers = ['Day', 'Scans', 'Users', 'Accuracy (%)']
+          reportData = chartData.usage.map(item => [
+            item.day,
+            item.scans,
+            item.users,
+            item.accuracy
+          ])
+          filename = `usage-report-${dateRange}-${new Date().toISOString().split('T')[0]}.csv`
+          break
+          
+        case 'analytics':
+          headers = ['Waste Type', 'Count', 'Percentage (%)']
+          reportData = chartData.classification.map(item => [
+            item.type,
+            item.count,
+            item.percentage
+          ])
+          filename = `analytics-report-${dateRange}-${new Date().toISOString().split('T')[0]}.csv`
+          break
+          
+        case 'performance':
+          headers = ['Metric', 'Value', 'Unit', 'Status']
+          reportData = chartData.performance.map(item => [
+            item.metric,
+            item.value,
+            item.unit,
+            item.status
+          ])
+          filename = `performance-report-${dateRange}-${new Date().toISOString().split('T')[0]}.csv`
+          break
+          
+        case 'summary':
+          headers = ['Metric', 'Value']
+          reportData = [
+            ['Total Scans', '1230'],
+            ['Accuracy Rate', '92%'],
+            ['Active Bins', '156'],
+            ['Total Users', '2847']
+          ]
+          filename = `summary-report-${dateRange}-${new Date().toISOString().split('T')[0]}.csv`
+          break
+          
+        default:
+          return
+      }
+      
+      // Create CSV content
+      const csvContent = [
+        headers.join(','),
+        ...reportData.map(row => row.map(cell => `"${cell}"`).join(','))
+      ].join('\n')
+      
+      // Create and trigger download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      
+      link.setAttribute('href', url)
+      link.setAttribute('download', filename)
+      link.style.visibility = 'hidden'
+      
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      // Add to reports list
+      const newReport = {
+        id: reports.length + 1,
+        name: `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`,
+        type: reportType,
+        generated: new Date().toLocaleString(),
+        size: `${(csvContent.length / 1024 / 1024).toFixed(2)} MB`,
+        status: "completed"
+      }
+      
+      // In a real app, this would update the database
+      console.log('Report generated and downloaded:', newReport)
+      
+    } catch (error) {
+      console.error('Error generating report:', error)
+      alert('Failed to generate report. Please try again.')
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
   return (
     <AdminSidebar>
       <div className="p-4 sm:p-6">
@@ -115,8 +216,24 @@ export default function AdminReports() {
               </div>
               
               <div className="flex items-end">
-                <button className="w-full px-4 py-2 bg-primary hover:bg-gray-900 text-white rounded-lg font-medium transition-colors text-sm">
-                  Generate Report
+                <button 
+                  onClick={generateAndDownloadReport}
+                  disabled={isGenerating}
+                  className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg font-medium transition-colors text-sm disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isGenerating ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Generate & Download Report
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -357,8 +474,21 @@ export default function AdminReports() {
                         </span>
                       </td>
                       <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm">
-                        <button className="text-primary hover:underline mr-2 sm:mr-3">Download</button>
-                        <button className="text-red-600 hover:underline">Delete</button>
+                        <button 
+                          onClick={() => {
+                            // Simulate download for existing reports
+                            const reportData = `Report Name,${report.name}\nType,${report.type}\nGenerated,${report.generated}\nSize,${report.size}\nStatus,${report.status}`
+                            const blob = new Blob([reportData], { type: 'text/csv' })
+                            const link = document.createElement('a')
+                            link.href = URL.createObjectURL(blob)
+                            link.download = `${report.name.replace(/\s+/g, '_')}.csv`
+                            link.click()
+                          }}
+                          className="text-blue-600 hover:text-blue-800 hover:underline mr-2 sm:mr-3 font-medium"
+                        >
+                          Download
+                        </button>
+                        <button className="text-red-600 hover:text-red-800 hover:underline">Delete</button>
                       </td>
                     </tr>
                   ))}
